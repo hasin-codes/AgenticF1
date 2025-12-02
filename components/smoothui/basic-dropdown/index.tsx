@@ -53,7 +53,8 @@ export default function BasicDropdown({
   return (
     <div className={`relative inline-block ${className}`} ref={dropdownRef}>
       <button
-        className="flex w-full items-center justify-between gap-2 rounded-lg border bg-background px-4 py-2 text-left transition-colors hover:bg-accent hover:text-accent-foreground"
+        className={`flex w-full items-center justify-between gap-2 rounded-lg border border-white/10 px-4 py-2 text-left transition-all hover:bg-background hover:border-white/20 ${isOpen ? "bg-background border-white/20" : "bg-secondary/50"
+          }`}
         onClick={() => setIsOpen(!isOpen)}
         type="button"
       >
@@ -95,11 +96,10 @@ export default function BasicDropdown({
                   whileHover={{ x: 5 }}
                 >
                   <button
-                    className={`flex w-full items-center px-4 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${
-                      selectedItem?.id === item.id
-                        ? "font-medium bg-accent text-accent-foreground"
-                        : "text-popover-foreground"
-                    }`}
+                    className={`flex w-full items-center px-4 py-2 text-left text-sm transition-colors hover:bg-accent hover:text-accent-foreground ${selectedItem?.id === item.id
+                      ? "font-medium bg-accent text-accent-foreground"
+                      : "text-popover-foreground"
+                      }`}
                     onClick={() => handleItemSelect(item)}
                     type="button"
                   >

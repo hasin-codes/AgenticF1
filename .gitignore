@@ -12,6 +12,53 @@
 
 # testing
 /coverage
+Missing Python/Backend Entries
+Since you have a Python backend with FastAPI, you should add:
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+Missing IDE/Editor Entries
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+Missing OS Entries
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+Missing Log Entries
+# Logs
+logs
+*.log
+Missing Build/Temp Entries
+# Temporary files
+*.tmp
+*.temp
+dist/
 
 # next.js
 /.next/

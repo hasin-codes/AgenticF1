@@ -1,3 +1,5 @@
+import { getApiUrl, getCurrentApiConfig } from './zai-api-config'
+
 export interface Message {
 	id: number
 	role: 'user' | 'ai' | 'system'
@@ -27,11 +29,16 @@ export const sendStreamingChatMessage = async (
 		}
 
 		// Log client-side request
+		const apiUrl = getApiUrl()
+		const apiConfig = getCurrentApiConfig()
+		
 		console.log('=== Client Request to API ===');
+		console.log('API Configuration:', apiConfig);
 		console.log('Sending messages:', JSON.stringify(messages, null, 2));
 		console.log('Model:', model);
+		console.log('Request URL:', apiUrl);
 
-		const res = await fetch('/api/chat', {
+		const res = await fetch(apiUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({ messages }),

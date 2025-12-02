@@ -120,34 +120,18 @@ export function AppSidebar({
     onProjectRename,
     onChatRename,
     onSettingsClick,
-    logoUrl = "/ZplitGPT.svg", // Default logo - customize for your project
+    logoUrl = "/ZplitGPT.svg",
     logoAlt = "App Logo",
-    appName = "ZplitGPT" // Default app name - customize for your project
+    appName = "ZplitGPT"
 }: AppSidebarProps) {
 
-    // ========================================================================
-    // MOBILE DETECTION & STATE
-    // ========================================================================
     const isMobile = useIsMobile()
     const [isHovered, setIsHovered] = useState(false)
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
 
-    // ========================================================================
-    // EXPANSION LOGIC
-    // ========================================================================
-    // MOBILE: Always expanded when sidebar is open (not collapsed)
-    // DESKTOP: Expanded only when explicitly toggled (no hover)
-    const isExpanded = isMobile
-        ? !collapsed
-        : !collapsed
+    const isExpanded = isMobile ? !collapsed : !collapsed
+    const [projectsExpanded, setProjectsExpanded] = useState(true) // Default to true for better UX
 
-    const [projectsExpanded, setProjectsExpanded] = useState(false)
-
-    // ========================================================================
-    // MOBILE: PREVENT BODY SCROLL WHEN SIDEBAR IS OPEN
-    // ========================================================================
-    // This prevents the background content from scrolling when the sidebar
-    // overlay is open on mobile devices
     useEffect(() => {
         if (isMobile && !collapsed) {
             document.body.style.overflow = 'hidden'
@@ -159,9 +143,6 @@ export function AppSidebar({
         }
     }, [isMobile, collapsed])
 
-    // ========================================================================
-    // DEFAULT DATA (if props not provided)
-    // ========================================================================
     const projects: Project[] = propsProjects || [
         { id: 'default', name: 'Default Workspace', lastModified: '2 hours ago' },
         { id: 'quantum-computing', name: 'Quantum Computing', lastModified: '1 day ago' },
@@ -184,48 +165,26 @@ export function AppSidebar({
     const setSelectedProject = propsOnProjectSelect || (() => { })
     const setSelectedChat = propsOnChatSelect || (() => { })
 
-    // ========================================================================
-    // DESKTOP: HOVER HANDLERS
-    // ========================================================================
-    // These handlers manage the hover state for desktop expansion
-    const handleMouseEnter = () => {
-        if (!isMobile) {
-            setIsHovered(true)
-            onHoverChange?.(true)
-        }
-    }
-
-    const handleMouseLeave = () => {
-        if (!isMobile) {
-            // Don't collapse if profile dropdown is open
-            if (!isProfileDropdownOpen) {
-                setIsHovered(false)
-                onHoverChange?.(false)
-            }
-        }
-    }
-
-    // ========================================================================
-    // PROFILE DROPDOWN STATE MANAGEMENT
-    // ========================================================================
-    // Keeps sidebar expanded when profile dropdown is open (desktop only)
     const handleProfileDropdownOpenChange = (open: boolean) => {
         setIsProfileDropdownOpen(open)
     }
 
-    // ========================================================================
-    // SHARED SIDEBAR CONTENT (USED BY BOTH MOBILE AND DESKTOP)
-    // ========================================================================
     const renderSidebarContent = () => (
         <>
-            {/* ================================================================== */}
-            {/* HEADER SECTION - Logo and App Name */}
-            {/* ================================================================== */}
-            <SidebarHeader className={cn("border-b border-[#1a1a1a] relative w-full transition-all duration-300", isExpanded ? "p-4" : "p-2")}>
-                <div className={cn("flex items-center relative", isExpanded ? "justify-between" : "justify-center h-10")}>
-                    <div className={cn("flex items-center relative", isExpanded ? "flex-1" : "justify-center w-full")}>
-                        {/* Logo - Always visible */}
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-[#1a1a1a]">
+            {/* HEADER SECTION */}
+            <SidebarHeader className={cn(
+                "border-b border-white/5 relative w-full transition-[padding] duration-300 ease-in-out",
+                isExpanded ? "p-4" : "p-2"
+            )}>
+                <div className={cn(
+                    "flex items-center relative transition-[justify-content] duration-300",
+                    isExpanded ? "justify-between" : "justify-center h-10"
+                )}>
+                    <div className={cn(
+                        "flex items-center relative overflow-hidden transition-[width,opacity] duration-300",
+                        isExpanded ? "flex-1 opacity-100" : "w-0 opacity-0 hidden"
+                    )}>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 overflow-hidden bg-white/5 border border-white/10">
                             <Image
                                 src={logoUrl}
                                 alt={logoAlt}
@@ -234,37 +193,47 @@ export function AppSidebar({
                                 className="w-5 h-5 object-contain"
                             />
                         </div>
-                        {/* App Name - Only visible when expanded */}
-                        <div className={cn(
-                            "ml-3 flex flex-col transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap",
-                            isExpanded ? "w-auto opacity-100" : "w-0 opacity-0"
-                        )}>
-                            <span className="text-[#f5f5f5] font-bold text-lg leading-none">
+                        <div className="ml-3 flex flex-col overflow-hidden whitespace-nowrap">
+                            <span className="text-zinc-100 font-bold text-lg leading-none tracking-tight">
                                 {appName}
                             </span>
-                            <span className="text-[#666666] text-xs font-medium">
+                            <span className="text-zinc-500 text-[10px] font-medium uppercase tracking-wider mt-0.5">
                                 Telemetry
                             </span>
                         </div>
                     </div>
-                    {/* DESKTOP: Collapse toggle button - Only visible on desktop when expanded */}
+
+                    {/* Collapsed State Logo/Toggle */}
+                    {!isExpanded && !isMobile && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={onToggle}
+                            className="h-9 w-9 text-zinc-400 hover:text-white hover:bg-white/5 shrink-0 rounded-lg"
+                        >
+                            <PanelLeftIcon className="h-5 w-5" />
+                        </Button>
+                    )}
+
+                    {/* Expanded State Toggle */}
                     {!isMobile && isExpanded && (
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={onToggle}
-                            className="h-6 w-6 text-[#666666] hover:text-[#f5f5f5] hover:bg-[#1a1a1a] shrink-0 ml-2"
+                            className="h-6 w-6 text-zinc-500 hover:text-white hover:bg-white/5 shrink-0 ml-2"
                         >
-                            <PanelLeftIcon className="h-4 w-4" />
+                            <PanelLeftIcon className="h-4 w-4 rotate-180 transition-transform duration-300" />
                         </Button>
                     )}
-                    {/* MOBILE: Close button (X) - Only visible on mobile */}
+
+                    {/* Mobile Close */}
                     {isMobile && (
                         <Button
                             variant="ghost"
                             size="icon"
                             onClick={onToggle}
-                            className="h-8 w-8 text-[#b3b3b3] hover:text-[#f5f5f5] hover:bg-[#1a1a1a] shrink-0 ml-2"
+                            className="h-8 w-8 text-zinc-400 hover:text-white hover:bg-white/5 shrink-0 ml-auto"
                         >
                             <X className="h-5 w-5" />
                         </Button>
@@ -272,75 +241,57 @@ export function AppSidebar({
                 </div>
             </SidebarHeader>
 
-            {/* ================================================================== */}
-            {/* MAIN CONTENT AREA - Scrollable */}
-            {/* ================================================================== */}
-            <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden relative">
+            {/* MAIN CONTENT */}
+            <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
 
-                {/* ============================================================== */}
-                {/* PROJECTS SECTION */}
-                {/* ============================================================== */}
+                {/* PROJECTS */}
                 <SidebarGroup>
-                    {/* Header - Only visible when expanded */}
                     {isExpanded && (
-                        <div className="flex items-center justify-between mb-2 px-2">
-                            <SidebarGroupLabel className="text-[#666666] flex items-center font-medium text-xs uppercase tracking-wider">
+                        <div className="flex items-center justify-between mb-2 px-2 group/label">
+                            <SidebarGroupLabel className="text-zinc-500 flex items-center font-medium text-[10px] uppercase tracking-wider transition-colors group-hover/label:text-zinc-300">
                                 Projects
                             </SidebarGroupLabel>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-[#666666] hover:text-[#ff4f2b] hover:bg-[#151515] p-1 h-6 w-6 shrink-0"
+                                className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 p-1 h-5 w-5 shrink-0 opacity-0 group-hover/label:opacity-100 transition-opacity"
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onProjectCreate?.('New Project')
                                 }}
                             >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-3 h-3" />
                             </Button>
                         </div>
                     )}
-                    {/* Projects list - Collapsible with smooth animation */}
-                    <SidebarGroupContent
-                        className={cn(
-                            "overflow-hidden transition-all duration-300 ease-in-out",
-                            projectsExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-                        )}
-                    >
+                    <SidebarGroupContent className={cn(
+                        "overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out",
+                        projectsExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+                    )}>
                         <SidebarMenu>
                             {projects.map((project) => (
                                 <SidebarMenuItem key={project.id}>
                                     <SidebarMenuButton
                                         onClick={() => {
                                             setSelectedProject(project.id)
-                                            // MOBILE: Close sidebar when selecting a project
-                                            if (isMobile) {
-                                                onToggle()
-                                            }
+                                            if (isMobile) onToggle()
                                         }}
                                         isActive={selectedProject === project.id}
                                         tooltip={!isExpanded ? project.name : undefined}
                                         className={cn(
-                                            "rounded-lg cursor-pointer transition-all duration-200 ease-in-out relative group",
-                                            isExpanded ? "p-2" : "p-0 justify-center h-10 w-10 mx-auto",
+                                            "rounded-lg cursor-pointer transition-all duration-200 ease-out relative group border border-transparent",
+                                            isExpanded ? "px-3 py-2" : "p-0 justify-center h-10 w-10 mx-auto",
                                             selectedProject === project.id
-                                                ? 'bg-[#1a1a1a] text-[#f5f5f5]'
-                                                : 'text-[#888888] hover:text-[#f5f5f5] hover:bg-[#1a1a1a]'
+                                                ? 'bg-gradient-to-r from-red-500/10 to-transparent border-l-red-500 border-l-2 text-red-100'
+                                                : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
                                         )}
                                     >
-                                        {/* Active indicator - Orange accent */}
-                                        {selectedProject === project.id && (
-                                            <div className={cn(
-                                                "absolute bg-[#ff4f2b] rounded-full",
-                                                isExpanded
-                                                    ? "left-0 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r-full"
-                                                    : "top-1 right-1 w-1.5 h-1.5"
-                                            )} />
-                                        )}
-
                                         <div className={cn("flex items-center w-full", isExpanded ? "gap-3" : "justify-center")}>
-                                            <FolderOpen className={cn("shrink-0", isExpanded ? "w-4 h-4" : "w-5 h-5")} />
-
+                                            <FolderOpen className={cn(
+                                                "shrink-0 transition-colors",
+                                                isExpanded ? "w-4 h-4" : "w-5 h-5",
+                                                selectedProject === project.id ? "text-red-400" : "text-zinc-500 group-hover:text-zinc-300"
+                                            )} />
                                             {isExpanded && (
                                                 <span className="text-sm font-medium truncate">
                                                     {project.name}
@@ -354,28 +305,25 @@ export function AppSidebar({
                     </SidebarGroupContent>
                 </SidebarGroup>
 
-                <SidebarSeparator className="bg-[#1a1a1a]" />
+                <SidebarSeparator className="bg-white/5 my-2" />
 
-                {/* ============================================================== */}
-                {/* CHAT HISTORY SECTION */}
-                {/* ============================================================== */}
+                {/* CHATS */}
                 <SidebarGroup>
-                    {/* Header - Only visible when expanded */}
                     {isExpanded && (
-                        <div className="flex items-center justify-between mb-2 px-2">
-                            <SidebarGroupLabel className="text-[#666666] flex items-center font-medium text-xs uppercase tracking-wider">
+                        <div className="flex items-center justify-between mb-2 px-2 group/label">
+                            <SidebarGroupLabel className="text-zinc-500 flex items-center font-medium text-[10px] uppercase tracking-wider transition-colors group-hover/label:text-zinc-300">
                                 Recent Chats
                             </SidebarGroupLabel>
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="text-[#666666] hover:text-[#ff4f2b] hover:bg-[#151515] p-1 h-6 w-6 shrink-0"
+                                className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 p-1 h-5 w-5 shrink-0 opacity-0 group-hover/label:opacity-100 transition-opacity"
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onChatCreate?.()
                                 }}
                             >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-3 h-3" />
                             </Button>
                         </div>
                     )}
@@ -386,34 +334,24 @@ export function AppSidebar({
                                     <SidebarMenuButton
                                         onClick={() => {
                                             setSelectedChat(chat.id)
-                                            // MOBILE: Close sidebar when selecting a chat
-                                            if (isMobile) {
-                                                onToggle()
-                                            }
+                                            if (isMobile) onToggle()
                                         }}
                                         isActive={selectedChat === chat.id}
                                         tooltip={!isExpanded ? chat.title : undefined}
                                         className={cn(
-                                            "rounded-lg cursor-pointer transition-all duration-200 ease-in-out relative group",
-                                            isExpanded ? "p-2" : "p-0 justify-center h-10 w-10 mx-auto",
+                                            "rounded-lg cursor-pointer transition-all duration-200 ease-out relative group border border-transparent",
+                                            isExpanded ? "px-3 py-2" : "p-0 justify-center h-10 w-10 mx-auto",
                                             selectedChat === chat.id
-                                                ? 'bg-[#1a1a1a] text-[#f5f5f5]'
-                                                : 'text-[#888888] hover:text-[#f5f5f5] hover:bg-[#1a1a1a]'
+                                                ? 'bg-gradient-to-r from-red-500/10 to-transparent border-l-red-500 border-l-2 text-red-100'
+                                                : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
                                         )}
                                     >
-                                        {/* Active indicator - Orange accent */}
-                                        {selectedChat === chat.id && (
-                                            <div className={cn(
-                                                "absolute bg-[#ff4f2b] rounded-full",
-                                                isExpanded
-                                                    ? "left-0 top-1/2 -translate-y-1/2 w-1 h-4 rounded-r-full"
-                                                    : "top-1 right-1 w-1.5 h-1.5"
-                                            )} />
-                                        )}
-
                                         <div className={cn("flex items-center w-full", isExpanded ? "gap-3" : "justify-center")}>
-                                            <MessageSquare className={cn("shrink-0", isExpanded ? "w-4 h-4" : "w-5 h-5")} />
-
+                                            <MessageSquare className={cn(
+                                                "shrink-0 transition-colors",
+                                                isExpanded ? "w-4 h-4" : "w-5 h-5",
+                                                selectedChat === chat.id ? "text-red-400" : "text-zinc-500 group-hover:text-zinc-300"
+                                            )} />
                                             {isExpanded && (
                                                 <span className="text-sm font-medium truncate">
                                                     {chat.title}
@@ -428,134 +366,77 @@ export function AppSidebar({
                 </SidebarGroup>
             </SidebarContent>
 
-            {/* ================================================================== */}
-            {/* FOOTER SECTIONS - Help, Settings, Profile */}
-            {/* ================================================================== */}
-
-            {/* Help Icon */}
-            <div className={cn("py-2 border-t border-[#1a1a1a]", isExpanded ? "px-4" : "px-2")}>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                        "w-full hover:text-[#f5f5f5] hover:bg-[#1a1a1a] relative transition-all duration-200",
-                        isExpanded ? "justify-start text-[#b3b3b3] px-3 h-10" : "justify-center text-[#b3b3b3] px-0 h-10 w-10 mx-auto rounded-lg"
-                    )}
-                >
-                    <HelpCircle
-                        className="w-5 h-5 shrink-0"
-                    />
-                    {/* Help label - Only visible when expanded */}
-                    {isExpanded && (
-                        <span className="ml-3 whitespace-nowrap">
-                            Help
-                        </span>
-                    )}
-                </Button>
-            </div>
-
-            {/* Settings Icon */}
-            <div className={cn("py-2 border-t border-[#1a1a1a]", isExpanded ? "px-4" : "px-2")}>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                        onSettingsClick?.()
-                        // MOBILE: Close sidebar when opening settings
-                        if (isMobile) {
-                            onToggle()
-                        }
-                    }}
-                    className={cn(
-                        "w-full hover:text-[#f5f5f5] hover:bg-[#1a1a1a] relative transition-all duration-200",
-                        isExpanded ? "justify-start text-[#b3b3b3] px-3 h-10" : "justify-center text-[#b3b3b3] px-0 h-10 w-10 mx-auto rounded-lg"
-                    )}
-                >
-                    <Settings
-                        className="w-5 h-5 shrink-0"
-                    />
-                    {/* Settings label - Only visible when expanded */}
-                    {isExpanded && (
-                        <span className="ml-3 whitespace-nowrap">
-                            Settings
-                        </span>
-                    )}
-                </Button>
-            </div>
-
-            {/* User Profile Dropdown */}
-            <div className={cn("py-2 border-t border-[#1a1a1a]", isExpanded ? "px-4" : "px-2")}>
-                {isExpanded ? (
-                    <div
-                        style={!isMobile ? {
-                            clipPath: isExpanded ? 'inset(0)' : 'inset(0 100% 0 0)',
-                            transition: 'clip-path 300ms ease-in-out'
-                        } : {}}
+            {/* FOOTER */}
+            <div className="mt-auto border-t border-white/5 bg-black/20">
+                {/* Help */}
+                <div className={cn("py-2", isExpanded ? "px-3" : "px-2")}>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className={cn(
+                            "w-full hover:text-white hover:bg-white/5 relative transition-all duration-200",
+                            isExpanded ? "justify-start text-zinc-400 px-3 h-9" : "justify-center text-zinc-400 px-0 h-9 w-9 mx-auto rounded-lg"
+                        )}
                     >
-                        <ProfileDropdown
-                            className="w-full"
-                            onOpenChange={handleProfileDropdownOpenChange}
-                        />
-                    </div>
-                ) : (
-                    <div className="flex justify-center">
-                        <ProfileDropdown
-                            className="w-auto"
-                            collapsed={true}
-                            onOpenChange={handleProfileDropdownOpenChange}
-                            data={{
-                                name: "Eugene An",
-                                email: "eugene@kokonutui.com",
-                                avatar: "/Demo avatar/Avatar.webP",
-                                subscription: "PRO",
-                                model: "Gemini 2.0 Flash"
-                            }}
-                        />
-                    </div>
-                )}
+                        <HelpCircle className="w-4 h-4 shrink-0" />
+                        {isExpanded && <span className="ml-3 text-sm">Help</span>}
+                    </Button>
+                </div>
+
+                {/* Settings */}
+                <div className={cn("py-2", isExpanded ? "px-3" : "px-2")}>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                            onSettingsClick?.()
+                            if (isMobile) onToggle()
+                        }}
+                        className={cn(
+                            "w-full hover:text-white hover:bg-white/5 relative transition-all duration-200",
+                            isExpanded ? "justify-start text-zinc-400 px-3 h-9" : "justify-center text-zinc-400 px-0 h-9 w-9 mx-auto rounded-lg"
+                        )}
+                    >
+                        <Settings className="w-4 h-4 shrink-0" />
+                        {isExpanded && <span className="ml-3 text-sm">Settings</span>}
+                    </Button>
+                </div>
+
+                {/* Profile */}
+                <div className={cn("py-3", isExpanded ? "px-3" : "px-2")}>
+                    <ProfileDropdown
+                        className={cn("w-full", !isExpanded && "justify-center")}
+                        collapsed={!isExpanded}
+                        onOpenChange={handleProfileDropdownOpenChange}
+                        data={{
+                            name: "Eugene An",
+                            email: "eugene@kokonutui.com",
+                            avatar: "/Demo avatar/Avatar.webP",
+                            subscription: "PRO",
+                            model: "Gemini 2.0 Flash"
+                        }}
+                    />
+                </div>
             </div>
         </>
     )
 
-    // ========================================================================
-    // MOBILE RENDERING: Fixed overlay sidebar
-    // ========================================================================
-    // On mobile, the sidebar is a fixed overlay that slides in from the left
-    // with a dark backdrop. It covers the entire screen height.
     if (isMobile) {
         return (
             <>
-                {/* Backdrop overlay - Only visible when sidebar is open */}
                 {!collapsed && (
                     <div
-                        className="fixed inset-0 bg-black/60 z-60 transition-opacity duration-300 ease-in-out"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 transition-opacity duration-300"
                         onClick={onToggle}
-                        onTouchEnd={onToggle}
                         aria-hidden="true"
                     />
                 )}
-
-                {/* Sidebar container - Slides in from left */}
                 <div
                     className={cn(
-                        "fixed left-0 top-6 bottom-6 w-[280px] max-w-[85vw] bg-[#0a0a0a] border-r border-[#1a1a1a] z-70",
-                        "flex flex-col transition-transform duration-300 ease-in-out",
-                        "shadow-2xl rounded-[20px] border border-white/5 overflow-hidden",
-                        collapsed ? "-translate-x-full" : "translate-x-0",
-                        collapsed && "pointer-events-none"
+                        "fixed left-0 top-0 bottom-0 w-[280px] bg-[#0A0A0A] border-r border-white/10 z-50",
+                        "flex flex-col transition-transform duration-300 ease-out shadow-2xl",
+                        collapsed ? "-translate-x-full" : "translate-x-0"
                     )}
-                    style={{
-                        height: 'calc(100svh - 48px)'
-                    }}
-                    onClick={(e) => {
-                        // Prevent clicks inside sidebar from closing it
-                        e.stopPropagation()
-                    }}
-                    onTouchStart={(e) => {
-                        // Prevent touch events from closing sidebar
-                        e.stopPropagation()
-                    }}
-                    aria-hidden={collapsed}
                 >
                     {renderSidebarContent()}
                 </div>
@@ -563,18 +444,13 @@ export function AppSidebar({
         )
     }
 
-    // ========================================================================
-    // DESKTOP RENDERING: Collapsible sidebar (no hover)
-    // ========================================================================
-    // On desktop, the sidebar can collapse to icon-only mode (72px) and
-    // expands only when explicitly toggled.
     return (
         <div className="h-full">
             <Sidebar
                 side="left"
                 variant="sidebar"
                 collapsible="icon"
-                className="h-full bg-[#0a0a0a] border-r border-[#1a1a1a] overflow-x-hidden"
+                className="h-full bg-[#0A0A0A] border-r border-white/5 overflow-x-hidden"
             >
                 {renderSidebarContent()}
             </Sidebar>

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Sparkles, ArrowRight } from "lucide-react"
+import { Sparkles, ArrowRight, ChevronRight, Copy, ThumbsUp, ThumbsDown, RefreshCw, CornerDownLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -38,29 +38,37 @@ export function ChatInterface({ className }: { className?: string }) {
     const [messageIdCounter, setMessageIdCounter] = React.useState(4)
     const scrollAreaRef = React.useRef<HTMLDivElement>(null)
     const endOfMessagesRef = React.useRef<HTMLDivElement>(null)
+    const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
 
-    const scrollToBottom = () => {
-        if (scrollAreaRef.current) {
-            const scrollElement = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
-            if (scrollElement) {
-                scrollElement.scrollTop = scrollElement.scrollHeight
-            }
+    // Check if user is at the bottom to determine if we should auto-scroll
+    const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+        const target = event.target as HTMLDivElement
+        const { scrollTop, scrollHeight, clientHeight } = target
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
+        setShouldAutoScroll(isAtBottom)
+    }
+
+    const scrollToBottom = (smooth = true) => {
+        if (endOfMessagesRef.current) {
+            endOfMessagesRef.current.scrollIntoView({
+                behavior: smooth ? "smooth" : "auto",
+                block: "end"
+            })
         }
     }
 
-    // Auto-scroll when messages change or during streaming
+    // Scroll on new messages if we should
     React.useEffect(() => {
-        scrollToBottom()
-    }, [messages])
+        if (shouldAutoScroll) {
+            scrollToBottom()
+        }
+    }, [messages, shouldAutoScroll])
 
-    // Additional scroll behavior for streaming
+    // Force scroll to bottom when loading starts
     React.useEffect(() => {
         if (isLoading) {
-            const interval = setInterval(() => {
-                scrollToBottom()
-            }, 100) // Scroll every 100ms during loading
-
-            return () => clearInterval(interval)
+            setShouldAutoScroll(true)
+            scrollToBottom()
         }
     }, [isLoading])
 
@@ -76,51 +84,44 @@ export function ChatInterface({ className }: { className?: string }) {
     const handleSendMessage = async (userMessage: string) => {
         if (isLoading) return
 
-        // Generate unique IDs for all messages at once to avoid conflicts
         const newUserMsgId = messageIdCounter
         const aiPlaceholderId = messageIdCounter + 1
         const errorMsgId = messageIdCounter + 2
 
-        // Add user message
         const userMsg: Message = {
             id: newUserMsgId,
             role: 'user',
             content: userMessage,
             timestamp: formatTimestamp()
         }
-        
+
         setMessages(prev => [...prev, userMsg])
-        setMessageIdCounter(prev => prev + 3) // Reserve IDs for user, AI response, and potential error
+        setMessageIdCounter(prev => prev + 3)
         setIsLoading(true)
+        setShouldAutoScroll(true)
 
         try {
-            // Prepare messages for API (convert to OpenAI format)
-            // We need to include all messages except the AI placeholder we just added
             const apiMessages = messages
-                .filter(msg => msg.id !== aiPlaceholderId) // Exclude the AI placeholder
-                .filter(msg => msg.role !== 'ai') // Filter out other ai messages, keep user and system
+                .filter(msg => msg.id !== aiPlaceholderId)
                 .map(msg => ({
-                    role: msg.role as 'user' | 'system',
+                    role: (msg.role === 'ai' ? 'assistant' : msg.role) as 'user' | 'assistant' | 'system',
                     content: msg.content
                 }))
-            
-            // Add current user message
+
             apiMessages.push({
                 role: 'user',
                 content: userMessage
             })
 
-            // Create placeholder for AI response
             const aiPlaceholder: Message = {
                 id: aiPlaceholderId,
                 role: 'ai',
                 content: '',
                 timestamp: formatTimestamp()
             }
-            
+
             setMessages(prev => [...prev, aiPlaceholder])
 
-            // Get AI response with streaming
             let fullResponse = ''
             await sendStreamingChatMessage(
                 apiMessages,
@@ -137,7 +138,6 @@ export function ChatInterface({ className }: { className?: string }) {
                 }
             )
 
-            // Update the final message
             setMessages(prev =>
                 prev.map(msg =>
                     msg.id === aiPlaceholderId
@@ -145,8 +145,8 @@ export function ChatInterface({ className }: { className?: string }) {
                             ...msg,
                             content: fullResponse,
                             hasAction: fullResponse.toLowerCase().includes('telemetry') ||
-                                     fullResponse.toLowerCase().includes('data') ||
-                                     fullResponse.toLowerCase().includes('comparison')
+                                fullResponse.toLowerCase().includes('data') ||
+                                fullResponse.toLowerCase().includes('comparison')
                         }
                         : msg
                 )
@@ -154,15 +154,12 @@ export function ChatInterface({ className }: { className?: string }) {
 
         } catch (error) {
             console.error('Error sending message:', error)
-            
-            // Add error message
             const errorMsg: Message = {
                 id: errorMsgId,
                 role: 'ai',
                 content: 'Sorry, I encountered an error while processing your request. Please try again.',
                 timestamp: formatTimestamp()
             }
-            
             setMessages(prev => [...prev, errorMsg])
         } finally {
             setIsLoading(false)
@@ -171,83 +168,127 @@ export function ChatInterface({ className }: { className?: string }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
+            initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
             className={cn(
-                "flex flex-col h-full bg-card rounded-[20px] floaty-shadow overflow-hidden z-10",
+                "flex flex-col h-full bg-card rounded-[24px] overflow-hidden border border-white/5 shadow-2xl shadow-black/50",
                 className
             )}
         >
-            {/* Messages Area */}
-            <ScrollArea ref={scrollAreaRef} className="flex-1 p-6">
-                <div className="space-y-6">
-                    {messages.map((msg) => (
-                        <motion.div
-                            key={msg.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={cn(
-                                "flex gap-4 max-w-[85%]",
-                                msg.role === "user" ? "ml-auto flex-row-reverse" : ""
-                            )}
-                        >
-                            <Avatar className="h-8 w-8 mt-1 border border-white/10">
-                                {msg.role === "ai" ? (
-                                    <>
-                                        <AvatarImage src="/ai-avatar.png" />
-                                        <AvatarFallback className="bg-primary text-primary-foreground"><Sparkles className="h-4 w-4" /></AvatarFallback>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AvatarImage src="/avatars/01.png" />
-                                        <AvatarFallback>MV</AvatarFallback>
-                                    </>
-                                )}
-                            </Avatar>
+            {/* Header / Status Bar could go here if needed */}
 
-                            <div className={cn(
-                                "flex flex-col gap-1",
-                                msg.role === "user" ? "items-end" : "items-start"
-                            )}>
-                                <div className={cn(
-                                    "p-4 rounded-2xl text-sm leading-relaxed shadow-sm",
-                                    msg.role === "user"
-                                        ? "bg-primary text-primary-foreground rounded-tr-sm"
-                                        : "bg-secondary text-secondary-foreground rounded-tl-sm"
-                                )}>
-                                    {msg.role === "ai" ? (
-                                        <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-headings:my-2 prose-ul:my-1 prose-li:my-0 prose-code:text-xs prose-code:bg-muted prose-code:px-1 prose-code:rounded prose-pre:bg-muted prose-pre:p-2 prose-pre:rounded prose-pre:text-xs">
-                                            <ReactMarkdown
-                                                remarkPlugins={[remarkGfm]}
-                                            >
+            {/* Messages Area */}
+            <div className="flex-1 overflow-hidden relative">
+                <ScrollArea
+                    ref={scrollAreaRef}
+                    className="h-full w-full"
+                    onScrollCapture={handleScroll} // Capture scroll events to update auto-scroll state
+                >
+                    <div className="flex flex-col p-6 space-y-8 min-h-full">
+                        {messages.map((msg, index) => (
+                            <motion.div
+                                key={msg.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, delay: index * 0.05 }}
+                                className={cn(
+                                    "flex gap-4 w-full",
+                                    msg.role === "user" ? "justify-end" : "justify-start"
+                                )}
+                            >
+                                {msg.role === "ai" ? (
+                                    <div className="flex flex-col gap-2 max-w-[90%] md:max-w-[85%]">
+                                        {/* Thought Process Header */}
+                                        {!isLoading && msg.content !== '' && (
+                                            <div className="flex items-center gap-2 text-muted-foreground/60 text-xs font-medium mb-1 cursor-pointer hover:text-muted-foreground transition-colors w-fit">
+                                                <Sparkles className="h-3.5 w-3.5" />
+                                                <span>Thought for 1.2 seconds</span>
+                                                <ChevronRight className="h-3 w-3" />
+                                            </div>
+                                        )}
+
+                                        {/* AI Content - Clean Text */}
+                                        <div className="prose prose-invert prose-sm max-w-none 
+                                            prose-p:leading-relaxed prose-p:my-2
+                                            prose-headings:text-zinc-100 prose-headings:font-semibold prose-headings:my-4
+                                            prose-ul:my-2 prose-li:my-0.5
+                                            prose-strong:text-white prose-strong:font-semibold
+                                            prose-code:text-xs prose-code:bg-white/5 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:border prose-code:border-white/10
+                                            prose-pre:bg-zinc-950/50 prose-pre:p-4 prose-pre:rounded-xl prose-pre:border prose-pre:border-white/10">
+                                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                                 {msg.content}
                                             </ReactMarkdown>
+                                            {msg.content === '' && isLoading && (
+                                                <span className="inline-flex gap-1 items-center h-5">
+                                                    <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
+                                                    <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
+                                                    <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></span>
+                                                </span>
+                                            )}
                                         </div>
-                                    ) : (
-                                        msg.content
-                                    )}
-                                </div>
 
-                                {msg.hasAction && (
-                                    <Button variant="outline" size="sm" className="mt-2 gap-2 text-primary border-primary/20 hover:bg-primary/10">
-                                        Show on Telemetry <ArrowRight className="h-3 w-3" />
-                                    </Button>
+                                        {/* Action Bar */}
+                                        {!isLoading && msg.content !== '' && (
+                                            <div className="flex items-center gap-1 mt-2 -ml-2">
+                                                <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5">
+                                                    <CornerDownLeft className="h-3.5 w-3.5" />
+                                                    Insert
+                                                </Button>
+                                                <div className="h-4 w-px bg-white/10 mx-1" />
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                    <Copy className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                    <ThumbsUp className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                    <ThumbsDown className="h-3.5 w-3.5" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                    <RefreshCw className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
+                                        )}
+
+                                        {/* Telemetry Action Button (if applicable) */}
+                                        {msg.hasAction && (
+                                            <motion.div
+                                                initial={{ opacity: 0, height: 0 }}
+                                                animate={{ opacity: 1, height: 'auto' }}
+                                                className="mt-2"
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2 text-xs font-medium bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:text-red-300 transition-colors"
+                                                >
+                                                    Show on Telemetry <ArrowRight className="h-3 w-3" />
+                                                </Button>
+                                            </motion.div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    // User Message Bubble
+                                    <div className="flex flex-col items-end max-w-[80%]">
+                                        <div className="px-5 py-3 rounded-[20px] text-[15px] leading-relaxed shadow-md bg-gradient-to-br from-red-600 to-red-700 text-white border border-red-500/20">
+                                            <span className="font-medium tracking-wide">{msg.content}</span>
+                                        </div>
+                                    </div>
                                 )}
+                            </motion.div>
+                        ))}
+                        <div ref={endOfMessagesRef} className="h-4" />
+                    </div>
+                </ScrollArea>
 
-                                <span className="text-[10px] text-muted-foreground px-1">
-                                    {msg.timestamp}
-                                </span>
-                            </div>
-                        </motion.div>
-                    ))}
-                    {/* Invisible element to scroll to */}
-                    <div ref={endOfMessagesRef} />
-                </div>
-            </ScrollArea>
+                {/* Gradient overlay for top fade */}
+                <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-card to-transparent pointer-events-none z-10" />
+            </div>
 
-            {/* Input Area - Using KokonutUI AI_Prompt */}
-            <div className="p-4 bg-card/50 backdrop-blur-md border-t border-white/5 flex-shrink-0">
-                <div className="flex justify-center">
+            {/* Input Area */}
+            <div className="p-4 flex-shrink-0 z-20">
+                <div className="flex justify-center max-w-3xl mx-auto w-full">
                     <AI_Prompt onSendMessage={handleSendMessage} disabled={isLoading} />
                 </div>
             </div>
