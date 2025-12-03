@@ -16,6 +16,11 @@ import {
 import { motion } from "framer-motion"
 import BasicDropdown from "@/components/smoothui/basic-dropdown"
 import { useTelemetry } from "@/lib/telemetry-context"
+import { useChat } from "@/lib/chat-context"
+
+// User Info
+export const USER_NAME = "Hasin Raiyan"
+export const USER_EMAIL = "hasin@example.com"
 
 // Types
 interface F1Event {
@@ -47,6 +52,7 @@ const SESSION_TYPES = [
 
 export function TopBarLeft({ className }: { className?: string }) {
     const { selection, updateSelection } = useTelemetry()
+    const { currentChatId, getChatData, updateChatTopbarState } = useChat()
 
     // Local state for UI
     const [events, setEvents] = React.useState<F1Event[]>([])
@@ -55,6 +61,24 @@ export function TopBarLeft({ className }: { className?: string }) {
     // Loading states
     const [loadingEvents, setLoadingEvents] = React.useState(false)
     const [loadingDrivers, setLoadingDrivers] = React.useState(false)
+
+    // Load saved topbar state for current chat
+    React.useEffect(() => {
+        if (currentChatId) {
+            const chatData = getChatData(currentChatId)
+            if (chatData && chatData.topbarState) {
+                // Load saved state
+                updateSelection(chatData.topbarState)
+            }
+        }
+    }, [currentChatId, getChatData])
+
+    // Save topbar state to chat context whenever it changes
+    React.useEffect(() => {
+        if (currentChatId) {
+            updateChatTopbarState(currentChatId, selection)
+        }
+    }, [selection, currentChatId, updateChatTopbarState])
 
     const yearItems = [
         { id: "2024", label: "2024" },
@@ -296,7 +320,7 @@ export function TopBarRight({ className }: { className?: string }) {
                     <span className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-[11px] font-bold text-white shadow-lg tracking-wide">
                         DEV MODE
                     </span>
-                    <p className="text-sm font-semibold leading-none text-foreground">Hasin Raiyan</p>
+                    <p className="text-sm font-semibold leading-none text-foreground">{USER_NAME}</p>
                 </div>
 
                 <DropdownMenu>
@@ -311,9 +335,9 @@ export function TopBarRight({ className }: { className?: string }) {
                     <DropdownMenuContent className="w-56 bg-popover border-border" align="end" forceMount>
                         <DropdownMenuLabel className="font-normal">
                             <div className="flex flex-col space-y-1">
-                                <p className="text-sm font-medium leading-none">Hasin Raiyan</p>
+                                <p className="text-sm font-medium leading-none">{USER_NAME}</p>
                                 <p className="text-xs leading-none text-muted-foreground">
-                                    hasin@example.com
+                                    {USER_EMAIL}
                                 </p>
                             </div>
                         </DropdownMenuLabel>

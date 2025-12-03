@@ -11,34 +11,71 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import AI_Prompt from "@/components/kokonutui/ai-prompt"
 import { sendStreamingChatMessage, Message } from "@/lib/zai-api"
+import { useChat } from "@/lib/chat-context"
+import { useTelemetry } from "@/lib/telemetry-context"
 
-export function ChatInterface({ className }: { className?: string }) {
-    const [messages, setMessages] = React.useState<Message[]>([
-        {
-            id: 1,
-            role: "ai",
-            content: "Welcome back, Max. I've analyzed the telemetry from your last stint. You're losing 0.2s in Sector 2 compared to Leclerc. Would you like to see the throttle trace?",
-            timestamp: "10:23 AM"
-        },
-        {
-            id: 2,
-            role: "user",
-            content: "Yes, show me the comparison in Turn 8 specifically.",
-            timestamp: "10:24 AM"
-        },
-        {
-            id: 3,
-            role: "ai",
-            content: "Here's the data for Turn 8. You can see Leclerc carries 5km/h more minimum speed. You're braking slightly earlier.",
-            timestamp: "10:24 AM",
-            hasAction: true
-        }
-    ])
+interface ChatInterfaceProps {
+    className?: string
+    chatId?: string
+}
+
+export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
+    const { getChatData, updateChatMessages, updateChatTitle, createNewChat } = useChat()
+
+    // If chatId is provided, use it. Otherwise we'll generate one on first message
+    const [activeChatId, setActiveChatId] = React.useState<string | undefined>(chatId)
+
+    const chatData = activeChatId ? getChatData(activeChatId) : null
+
+    const [messages, setMessages] = React.useState<Message[]>(chatData?.messages || [])
     const [isLoading, setIsLoading] = React.useState(false)
-    const [messageIdCounter, setMessageIdCounter] = React.useState(4)
+    const [messageIdCounter, setMessageIdCounter] = React.useState(
+        chatData?.messages?.length ? Math.max(...chatData.messages.map(m => m.id)) + 1 : 1
+    )
     const scrollAreaRef = React.useRef<HTMLDivElement>(null)
     const endOfMessagesRef = React.useRef<HTMLDivElement>(null)
     const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
+
+    // Sync messages with chat context
+    React.useEffect(() => {
+        if (chatId) {
+            setActiveChatId(chatId)
+        }
+    }, [chatId])
+
+    React.useEffect(() => {
+        if (chatData) {
+            setMessages(chatData.messages)
+            if (chatData.messages.length) {
+                setMessageIdCounter(Math.max(...chatData.messages.map(m => m.id)) + 1)
+            }
+        } else if (!activeChatId) {
+            // Reset for new chat
+            setMessages([])
+            setMessageIdCounter(1)
+        }
+    }, [activeChatId, chatData])
+
+    // Update chat context when messages change
+    React.useEffect(() => {
+        if (messages.length > 0 && activeChatId) {
+            // Check if messages are actually different from context to avoid infinite loop
+            if (chatData &&
+                chatData.messages.length === messages.length &&
+                chatData.messages[chatData.messages.length - 1]?.id === messages[messages.length - 1]?.id) {
+                return
+            }
+
+            updateChatMessages(activeChatId, messages)
+
+            // Update chat title based on first user message
+            const firstUserMessage = messages.find(m => m.role === 'user')
+            if (firstUserMessage && chatData?.title === 'New Chat') {
+                const title = firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
+                updateChatTitle(activeChatId, title)
+            }
+        }
+    }, [messages, activeChatId, updateChatMessages, updateChatTitle, chatData])
 
     // Check if user is at the bottom to determine if we should auto-scroll
     const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
@@ -83,6 +120,20 @@ export function ChatInterface({ className }: { className?: string }) {
 
     const handleSendMessage = async (userMessage: string) => {
         if (isLoading) return
+
+        let currentActiveId = activeChatId
+
+        // Create new chat if needed
+        if (!currentActiveId) {
+            const { generateUUID } = await import('@/lib/uuid')
+            const newId = generateUUID()
+            createNewChat(newId)
+            setActiveChatId(newId)
+            currentActiveId = newId
+
+            // Update URL without reloading
+            window.history.pushState({}, '', `/c/${newId}`)
+        }
 
         const newUserMsgId = messageIdCounter
         const aiPlaceholderId = messageIdCounter + 1

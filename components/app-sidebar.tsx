@@ -45,6 +45,7 @@
  */
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { FolderOpen, MessageSquare, Plus, HelpCircle, Settings, X, PanelLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -63,6 +64,8 @@ import {
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useChat } from '@/lib/chat-context'
+import { generateUUID } from '@/lib/uuid'
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -125,6 +128,8 @@ export function AppSidebar({
     appName = "ZplitGPT"
 }: AppSidebarProps) {
 
+    const router = useRouter()
+    const { getAllChats, createNewChat, currentChatId } = useChat()
     const isMobile = useIsMobile()
     const [isHovered, setIsHovered] = useState(false)
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
@@ -143,27 +148,35 @@ export function AppSidebar({
         }
     }, [isMobile, collapsed])
 
-    const projects: Project[] = propsProjects || [
-        { id: 'default', name: 'Default Workspace', lastModified: '2 hours ago' },
-        { id: 'quantum-computing', name: 'Quantum Computing', lastModified: '1 day ago' },
-        { id: 'api-design', name: 'API Design', lastModified: '3 days ago' },
-        { id: 'code-review', name: 'Code Review', lastModified: '1 week ago' }
-    ]
+    const projects: Project[] = propsProjects || []
 
-    const chatHistory: ChatHistory[] = propsChats || [
-        { id: 'chat-1', title: 'Quantum computing basics', timestamp: '10:30 AM' },
-        { id: 'chat-2', title: 'React hooks optimization', timestamp: '9:45 AM' },
-        { id: 'chat-3', title: 'Database schema design', timestamp: 'Yesterday' },
-        { id: 'chat-4', title: 'TypeScript best practices', timestamp: 'Yesterday' },
-        { id: 'chat-5', title: 'API authentication patterns', timestamp: '2 days ago' },
-        { id: 'chat-6', title: 'Performance optimization', timestamp: '3 days ago' }
-    ]
+    // Get chat history from chat context
+    const chatHistory: ChatHistory[] = getAllChats().map(chat => ({
+        id: chat.id,
+        title: chat.title,
+        timestamp: new Date(chat.timestamp).toLocaleDateString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        })
+    }))
 
     const selectedProject = propsSelectedProject ?? 'default'
-    const selectedChat = propsSelectedChat ?? 'chat-1'
+    const selectedChat = currentChatId || propsSelectedChat || 'chat-1'
 
     const setSelectedProject = propsOnProjectSelect || (() => { })
-    const setSelectedChat = propsOnChatSelect || (() => { })
+
+    const handleChatSelect = (chatId: string) => {
+        router.push(`/c/${chatId}`)
+        if (isMobile) onToggle()
+    }
+
+    const handleNewChat = () => {
+        const newChatId = generateUUID()
+        createNewChat(newChatId)
+        router.push(`/c/${newChatId}`)
+        if (isMobile) onToggle()
+    }
 
     const handleProfileDropdownOpenChange = (open: boolean) => {
         setIsProfileDropdownOpen(open)
@@ -320,7 +333,7 @@ export function AppSidebar({
                                 className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 p-1 h-5 w-5 shrink-0 opacity-0 group-hover/label:opacity-100 transition-opacity"
                                 onClick={(e) => {
                                     e.stopPropagation()
-                                    onChatCreate?.()
+                                    handleNewChat()
                                 }}
                             >
                                 <Plus className="w-3 h-3" />
@@ -332,10 +345,7 @@ export function AppSidebar({
                             {chatHistory.map((chat) => (
                                 <SidebarMenuItem key={chat.id}>
                                     <SidebarMenuButton
-                                        onClick={() => {
-                                            setSelectedChat(chat.id)
-                                            if (isMobile) onToggle()
-                                        }}
+                                        onClick={() => handleChatSelect(chat.id)}
                                         isActive={selectedChat === chat.id}
                                         tooltip={!isExpanded ? chat.title : undefined}
                                         className={cn(
