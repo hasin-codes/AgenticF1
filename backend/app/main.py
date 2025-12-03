@@ -17,6 +17,7 @@ except ImportError:
     raise ImportError("zai-sdk is required. Install with: pip install zai-sdk")
 
 from .config import settings
+from .telemetry_routes import router as telemetry_router
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,10 +25,13 @@ logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
 app = FastAPI(
-    title="Z.AI Chat API",
-    description="FastAPI backend for Z.AI chat completions using zai-sdk",
-    version="1.0.0"
+    title="F1 Telemetry API",
+    description="FastAPI backend for Z.AI chat completions and F1 telemetry data using FastF1",
+    version="1.1.0"
 )
+
+# Include telemetry router
+app.include_router(telemetry_router)
 
 # Add CORS middleware
 app.add_middleware(

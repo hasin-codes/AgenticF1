@@ -12,8 +12,7 @@
 
 import { ArrowRight, Paperclip } from "lucide-react";
 import { useState } from "react";
-import Anthropic from "@/components/kokonutui/anthropic";
-import AnthropicDark from "@/components/kokonutui/anthropic-dark";
+import CustomLogo from "@/components/kokonutui/custom-logo";
 import { Textarea } from "@/components/ui/textarea";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { cn } from "@/lib/utils";
@@ -52,8 +51,7 @@ export default function AI_Prompt({ onSendMessage, disabled = false }: AI_Prompt
         {/* Banner */}
         <div className="mx-2 mb-2.5 flex items-center gap-2">
           <div className="flex flex-1 items-center gap-2">
-            <Anthropic className="h-3.5 w-3.5 text-black dark:hidden" />
-            <AnthropicDark className="hidden h-3.5 w-3.5 dark:block" />
+            <CustomLogo className="h-3.5 w-3.5" />
             <h3 className="text-black text-xs tracking-tighter dark:text-white/90">
               in Production
             </h3>

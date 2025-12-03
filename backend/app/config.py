@@ -19,6 +19,12 @@ class Settings:
     DEFAULT_TEMPERATURE: float = 0.7
     DEFAULT_MAX_TOKENS: int = 2048
     
+    # Telemetry Configuration
+    FASTF1_CACHE_PATH: str = os.getenv("FASTF1_CACHE_PATH", "./data/fastf1_cache")
+    FASTF1_CACHE_ENABLED: bool = os.getenv("FASTF1_CACHE_ENABLED", "true").lower() == "true"
+    TELEMETRY_MAX_LAPS: int = int(os.getenv("TELEMETRY_MAX_LAPS", "100"))
+    TELEMETRY_TIMEOUT: int = int(os.getenv("TELEMETRY_TIMEOUT", "60"))
+    
     def validate_zai_key(self) -> bool:
         """Validate ZAI API key format"""
         if not self.ZAI_API_KEY:

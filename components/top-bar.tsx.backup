@@ -1,0 +1,214 @@
+"use client"
+
+import * as React from "react"
+import { Bell, User, Settings, LogOut, Check } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+}))
+
+// Handle driver selection toggle
+const toggleDriver = (driverCode: string) => {
+    setSelectedDrivers(prev => {
+        if (prev.includes(driverCode)) {
+            return prev.filter(d => d !== driverCode)
+        } else {
+            // Limit to 4 drivers max for comparison
+            if (prev.length >= 4) {
+                return prev
+            }
+            return [...prev, driverCode]
+        }
+    })
+}
+
+// Get driver display text
+const getDriverDisplayText = () => {
+    if (loadingDrivers) return "Loading..."
+    if (drivers.length === 0) return "No Drivers"
+    if (selectedDrivers.length === 0) return "Select Drivers"
+    if (selectedDrivers.length === 1) return selectedDrivers[0]
+    return `${selectedDrivers.length} Drivers Selected`
+}
+
+return (
+    <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+            "h-[72px] flex items-center gap-4 px-6 bg-card border border-white/5 rounded-[18px] floaty-shadow z-20",
+            className
+        )}
+    >
+        {/* Year Selector */}
+        <div className="flex items-center">
+            <BasicDropdown
+                label={selectedYear}
+                items={yearItems}
+                onChange={(item) => setSelectedYear(String(item.id))}
+                className="w-[100px]"
+            />
+        </div>
+
+        <div className="h-8 w-px bg-white/10" />
+
+        {/* GP Selector */}
+        <div className="flex items-center">
+            <BasicDropdown
+                label={loadingEvents ? "Loading..." : (selectedGP || "Select GP")}
+                items={gpItems}
+                onChange={(item) => setSelectedGP(String(item.id))}
+                className="w-[220px]"
+                disabled={loadingEvents || gpItems.length === 0}
+            />
+        </div>
+
+        <div className="h-8 w-px bg-white/10" />
+
+        {/* Session Type Tabs */}
+        <div className="flex bg-secondary/50 p-1 rounded-lg">
+            {SESSION_TYPES.map((session) => (
+                <button
+                    key={session.id}
+                    onClick={() => setActiveSession(session.id)}
+                    disabled={!selectedGP}
+                    className={cn(
+                        "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200",
+                        session.id === activeSession
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                        !selectedGP && "opacity-50 cursor-not-allowed"
+                    )}
+                >
+                    {session.label}
+                </button>
+            ))}
+        </div>
+
+        <div className="h-8 w-px bg-white/10" />
+
+        {/* Drivers Multi-Select */}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    className={cn(
+                        "h-9 px-4 rounded-lg bg-secondary/50 hover:bg-secondary/70 transition-colors",
+                        "flex items-center justify-between gap-2 text-sm font-medium",
+                        "border border-white/5",
+                        (!selectedGP || drivers.length === 0) && "opacity-50 cursor-not-allowed"
+                    )}
+                    disabled={!selectedGP || drivers.length === 0}
+                >
+                    <span className="truncate">{getDriverDisplayText()}</span>
+                    {selectedDrivers.length > 0 && (
+                        <span className="text-xs text-muted-foreground font-normal">
+                            ({selectedDrivers.length}/4)
+                        </span>
+                    )}
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                className="w-[200px] max-h-[300px] overflow-y-auto bg-popover/95 backdrop-blur-xl border-white/10"
+                align="end"
+            >
+                <DropdownMenuLabel className="text-xs text-muted-foreground">
+                    Select Drivers (Max 4)
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-white/10" />
+                {drivers.map((driver) => (
+                    <DropdownMenuItem
+                        key={driver}
+                        onClick={(e) => {
+                            e.preventDefault()
+                            toggleDriver(driver)
+                        }}
+                        className="flex items-center gap-3 cursor-pointer hover:bg-white/5 focus:bg-white/5"
+                    >
+                        <div className={cn(
+                            "w-4 h-4 border-2 rounded flex items-center justify-center transition-all",
+                            selectedDrivers.includes(driver)
+                                ? "bg-primary border-primary"
+                                : "border-muted-foreground/50"
+                        )}>
+                            {selectedDrivers.includes(driver) && (
+                                <Check className="h-3 w-3 text-primary-foreground" />
+                            )}
+                        </div>
+                        <span className="font-mono font-semibold text-sm">{driver}</span>
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    </motion.div>
+)
+}
+
+// --- Top Bar Right: User Controls ---
+
+export function TopBarRight({ className }: { className?: string }) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+                "h-[72px] w-[320px] flex items-center justify-end gap-6 px-6 bg-card border border-white/5 rounded-[18px] floaty-shadow z-20",
+                className
+            )}
+        >
+            {/* Notifications */}
+            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+                <Bell className="h-5 w-5" />
+                <span className="absolute top-2 right-2 h-2 w-2 bg-destructive rounded-full border border-card" />
+            </Button>
+
+            <div className="h-8 w-px bg-white/10" />
+
+            {/* User Profile */}
+            <div className="flex items-center gap-3">
+                <div className="text-right hidden md:block">
+                    <p className="text-sm font-medium leading-none">Max V.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Red Bull Racing</p>
+                </div>
+
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                            <Avatar className="h-10 w-10 border border-white/10">
+                                <AvatarImage src="/avatars/01.png" alt="@maxv" />
+                                <AvatarFallback>MV</AvatarFallback>
+                            </Avatar>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 bg-popover border-border" align="end" forceMount>
+                        <DropdownMenuLabel className="font-normal">
+                            <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">Max Verstappen</p>
+                                <p className="text-xs leading-none text-muted-foreground">
+                                    max@redbull.com
+                                </p>
+                            </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="hover:bg-accent hover:text-accent-foreground">
+                            <User className="mr-2 h-4 w-4" />
+                            <span>Profile</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="hover:bg-accent hover:text-accent-foreground">
+                            <Settings className="mr-2 h-4 w-4" />
+                            <span>Settings</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive hover:bg-destructive/10">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>Log out</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </motion.div>
+    )
+}

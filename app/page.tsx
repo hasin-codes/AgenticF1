@@ -8,6 +8,7 @@ import { ChatInterface } from "@/components/chat-interface"
 import { TelemetryPanel } from "@/components/telemetry-panel"
 import { PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { TelemetryProvider } from "@/lib/telemetry-context"
 
 export default function Home() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false)
@@ -71,84 +72,86 @@ export default function Home() {
   }, [isDragging, handleMouseMove, handleMouseUp])
 
   return (
-    <SidebarProvider
-      defaultOpen={!isSidebarCollapsed}
-      open={!isSidebarCollapsed}
-      onOpenChange={(open) => setIsSidebarCollapsed(!open)}
-    >
-      <main className="h-screen w-screen bg-background overflow-hidden flex">
-        {/* Sidebar Container - Gaps are now handled within the sidebar component */}
-        <div className="relative">
-          <AppSidebar
-            collapsed={isSidebarCollapsed}
-            onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            chats={chats}
-            selectedChat={selectedChat}
-            onChatSelect={setSelectedChat}
-            onChatCreate={() => console.log("Create new telemetry analysis")}
-            onSettingsClick={() => console.log("Settings clicked")}
-            logoUrl="/f1-logo.svg"
-            logoAlt="F1 Telemetry"
-            appName="F1 Tele"
-            // Hide projects section by passing empty array
-            projects={[]}
-          />
+    <TelemetryProvider>
+      <SidebarProvider
+        defaultOpen={!isSidebarCollapsed}
+        open={!isSidebarCollapsed}
+        onOpenChange={(open) => setIsSidebarCollapsed(!open)}
+      >
+        <main className="h-screen w-screen bg-background overflow-hidden flex">
+          {/* Sidebar Container - Gaps are now handled within the sidebar component */}
+          <div className="relative">
+            <AppSidebar
+              collapsed={isSidebarCollapsed}
+              onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+              chats={chats}
+              selectedChat={selectedChat}
+              onChatSelect={setSelectedChat}
+              onChatCreate={() => console.log("Create new telemetry analysis")}
+              onSettingsClick={() => console.log("Settings clicked")}
+              logoUrl="/Logo/Logo.svg"
+              logoAlt="F1 Telemetry"
+              appName="F1 Tele"
+              // Hide projects section by passing empty array
+              projects={[]}
+            />
 
-          {/* Expand Button - Shows when sidebar is collapsed on desktop */}
-          {isSidebarCollapsed && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSidebarCollapsed(false)}
-              className="hidden md:flex absolute left-[calc(4rem+24px+12px)] top-[30px] z-50 h-8 w-8 bg-card/80 backdrop-blur-sm border border-white/10 hover:bg-card hover:border-white/20 text-muted-foreground hover:text-foreground transition-all"
-            >
-              <PanelLeft className="h-4 w-4" />
-            </Button>
-          )}
-        </div>
-
-        {/* Main Content Area - Left padding changed from pl-6 to pl-4 to match gap-4 */}
-        <div className="flex-1 flex flex-col min-w-0 pl-4 pr-6 pt-6 pb-6 mr-6">
-
-          {/* Top Bar Row */}
-          <div className="flex gap-4 h-[72px] shrink-0 mb-4">
-            <TopBarLeft className="flex-1" />
-            <TopBarRight className="shrink-0" />
+            {/* Expand Button - Shows when sidebar is collapsed on desktop */}
+            {isSidebarCollapsed && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="hidden md:flex absolute left-[calc(4rem+24px+12px)] top-[30px] z-50 h-8 w-8 bg-card/80 backdrop-blur-sm border border-white/10 hover:bg-card hover:border-white/20 text-muted-foreground hover:text-foreground transition-all"
+              >
+                <PanelLeft className="h-4 w-4" />
+              </Button>
+            )}
           </div>
 
-          {/* Content Row - Resizable Split */}
-          <div
-            ref={containerRef}
-            className="flex-1 flex min-h-0 relative"
-          >
-            {/* Chat Panel - Now smaller (left side) */}
-            <div
-              style={{ width: `${chatWidth}%` }}
-              className="min-w-0"
-            >
-              <ChatInterface className="h-full" />
+          {/* Main Content Area - Left padding changed from pl-6 to pl-4 to match gap-4 */}
+          <div className="flex-1 flex flex-col min-w-0 pl-4 pr-6 pt-6 pb-6 mr-6">
+
+            {/* Top Bar Row */}
+            <div className="flex gap-4 h-[72px] shrink-0 mb-4">
+              <TopBarLeft className="flex-1" />
+              <TopBarRight className="shrink-0" />
             </div>
 
-            {/* Resizable Divider */}
+            {/* Content Row - Resizable Split */}
             <div
-              className="relative flex items-center justify-center w-4 cursor-col-resize group hover:bg-white/5 transition-colors"
-              onMouseDown={() => setIsDragging(true)}
+              ref={containerRef}
+              className="flex-1 flex min-h-0 relative"
             >
-              {/* Visual indicator */}
-              <div className="w-1 h-12 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors" />
+              {/* Chat Panel - Now smaller (left side) */}
+              <div
+                style={{ width: `${chatWidth}%` }}
+                className="min-w-0"
+              >
+                <ChatInterface className="h-full" />
+              </div>
+
+              {/* Resizable Divider */}
+              <div
+                className="relative flex items-center justify-center w-4 cursor-col-resize group hover:bg-white/5 transition-colors"
+                onMouseDown={() => setIsDragging(true)}
+              >
+                {/* Visual indicator */}
+                <div className="w-1 h-12 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors" />
+              </div>
+
+              {/* Telemetry Panel - Now larger (right side) */}
+              <div
+                style={{ width: `${100 - chatWidth - 1}%` }}
+                className="min-w-0"
+              >
+                <TelemetryPanel className="h-full" />
+              </div>
             </div>
 
-            {/* Telemetry Panel - Now larger (right side) */}
-            <div
-              style={{ width: `${100 - chatWidth - 1}%` }}
-              className="min-w-0"
-            >
-              <TelemetryPanel className="h-full" />
-            </div>
           </div>
-
-        </div>
-      </main>
-    </SidebarProvider>
+        </main>
+      </SidebarProvider>
+    </TelemetryProvider>
   )
 }
