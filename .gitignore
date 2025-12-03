@@ -12,8 +12,6 @@
 
 # testing
 /coverage
-Missing Python/Backend Entries
-Since you have a Python backend with FastAPI, you should add:
 
 # Python
 __pycache__/
@@ -38,23 +36,37 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
-Missing IDE/Editor Entries
+
+# Backend Python specific
+/backend/venv/
+/backend/env/
+/backend/.env
+
+# FastF1 cache data
+/backend/data/fastf1_cache/
+/backend/data/fastf1_http_cache.sqlite
+
+# Python cache in backend
+/backend/__pycache__/
+/backend/**/*.pyc
+/backend/**/*.pyo
+
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-Missing OS Entries
+
 # OS
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-Missing Log Entries
+
 # Logs
-logs
+logs/
 *.log
-Missing Build/Temp Entries
+
 # Temporary files
 *.tmp
 *.temp
@@ -86,3 +98,38 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Additional ignores for F1 telemetry project
+# Data files (only in data directories, not config files)
+*.csv
+/backend/data/**/*.json
+*.parquet
+*.hdf5
+
+# Model files
+*.pkl
+*.joblib
+*.h5
+*.pb
+
+# Jupyter notebooks
+*.ipynb
+
+# Additional Python ignores
+*.egg-info/
+.eggs/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Additional Node.js ignores
+.npm
+.eslintcache
+.stylelintcache
+
+# Local development
+.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
