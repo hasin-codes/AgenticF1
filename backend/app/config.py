@@ -9,6 +9,7 @@ class Settings:
     
     # Z.AI Configuration
     ZAI_API_KEY: str = os.getenv("ZAI_API_KEY", "")
+    SYSTEM_PROMPT: str = os.getenv("SYSTEM_PROMPT", "You are alonso99ai and you will finish your statement by saying Khaliabali.")
     
     # Server Configuration
     HOST: str = os.getenv("HOST", "0.0.0.0")

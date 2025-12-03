@@ -82,12 +82,21 @@ def validate_messages(messages: List[Message]) -> List[Message]:
     
     # Filter out invalid messages
     valid_messages = [
-        msg for msg in messages 
+        msg for msg in messages
         if msg.role and msg.content and isinstance(msg.content, str)
     ]
     
     if len(valid_messages) == 0:
         raise HTTPException(status_code=400, detail="No valid messages provided")
+    
+    # Add system prompt if not already present
+    has_system_message = any(msg.role == 'system' for msg in valid_messages)
+    if not has_system_message:
+        system_message = Message(
+            role="system",
+            content=settings.SYSTEM_PROMPT
+        )
+        valid_messages.insert(0, system_message)
     
     return valid_messages
 
@@ -229,8 +238,17 @@ async def chat_completions(request: ChatRequest):
             )
         else:
             # Non-streaming response (for completeness)
+            # Check if system message exists, if not add it
+            has_system_message = any(msg.role == 'system' for msg in valid_messages)
+            if not has_system_message:
+                system_message = Message(
+                    role="system",
+                    content=settings.SYSTEM_PROMPT
+                )
+                valid_messages.insert(0, system_message)
+            
             api_messages = [
-                {"role": msg.role, "content": msg.content} 
+                {"role": msg.role, "content": msg.content}
                 for msg in valid_messages
             ]
            
