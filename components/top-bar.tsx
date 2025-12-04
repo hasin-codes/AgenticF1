@@ -66,7 +66,6 @@ export function TopBarLeft({ className }: { className?: string }) {
     const isInitialized = React.useRef(false)
     const isLoadingState = React.useRef(false)
     const prevSelectionRef = React.useRef<string | undefined>(undefined)
-    const prevCurrentChatIdRef = React.useRef<string | undefined>(undefined)
 
     // Initialize component and load saved state
     React.useEffect(() => {
@@ -89,7 +88,7 @@ export function TopBarLeft({ className }: { className?: string }) {
                 }
             }
         }
-    }, [currentChatId, getChatData])
+    }, [currentChatId, getChatData, selection, updateSelection])
 
     // Save topbar state to chat context whenever it changes (but not during loading)
     React.useEffect(() => {
@@ -147,7 +146,7 @@ export function TopBarLeft({ className }: { className?: string }) {
 
             fetchEvents()
         }
-    }, [selection.year])
+    }, [selection.year, updateSelection])
 
     // Use refs to track previous GP and session values
     const prevGpRef = React.useRef<string | null>(null)
@@ -207,7 +206,7 @@ export function TopBarLeft({ className }: { className?: string }) {
 
             fetchDrivers()
         }
-    }, [selection.year, selection.gp, selection.session])
+    }, [selection.year, selection.gp, selection.session, updateSelection])
 
     // Convert events to dropdown items
     const gpItems = events.map(event => ({
@@ -369,7 +368,7 @@ export function TopBarRight({ className }: { className?: string }) {
             {/* User Profile */}
             <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center gap-3">
-                    <span className="px-3 py-1 rounded-full bg-gradient-to-r from-orange-500 to-red-500 text-[11px] font-bold text-white shadow-lg tracking-wide">
+                    <span className="px-3 py-1 rounded-full bg-linear-to-r from-orange-500 to-red-500 text-[11px] font-bold text-white shadow-lg tracking-wide">
                         DEV MODE
                     </span>
                     <p className="text-sm font-semibold leading-none text-foreground">{USER_NAME}</p>

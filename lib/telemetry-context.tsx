@@ -28,7 +28,7 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
     })
 
     // Use a ref to track the previous selection state
-    const prevSelectionRef = useRef<string>()
+    const prevSelectionRef = useRef<string | null>(null)
 
     const updateSelection = useCallback((updates: Partial<TelemetrySelection>) => {
         setSelection(prev => {
