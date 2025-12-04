@@ -108,21 +108,31 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                     {/* Main Content Area */}
                     <div className="flex-1 flex flex-col min-w-0 pl-4 pr-6 pt-6 pb-6 mr-6">
 
-                        {/* Top Bar Row - Conditionally Rendered with Animation */}
-                        <AnimatePresence>
-                            {isTelemetryVisible && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.4, delay: 0.3 }} // Staggered delay
-                                    className="flex gap-4 h-[72px] shrink-0 mb-4"
-                                >
-                                    <TopBarLeft className="flex-1" />
-                                    <TopBarRight className="shrink-0" />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        {/* Top Bar Row - Always rendered but animates height/opacity */}
+                        <motion.div
+                            animate={{
+                                height: isTelemetryVisible ? "72px" : "0px",
+                                marginBottom: isTelemetryVisible ? "16px" : "0px",
+                                opacity: isTelemetryVisible ? 1 : 0,
+                            }}
+                            transition={{
+                                height: { duration: 0.4, delay: isTelemetryVisible ? 0.3 : 0.9, ease: [0.4, 0, 0.2, 1] },
+                                marginBottom: { duration: 0.4, delay: isTelemetryVisible ? 0.3 : 0.9, ease: [0.4, 0, 0.2, 1] },
+                                opacity: { duration: 0.3, delay: isTelemetryVisible ? 0.4 : 0.9 }
+                            }}
+                            className="flex gap-4 shrink-0 overflow-hidden"
+                        >
+                            <motion.div
+                                animate={{
+                                    y: isTelemetryVisible ? 0 : -20
+                                }}
+                                transition={{ duration: 0.4, delay: isTelemetryVisible ? 0.3 : 0.9 }}
+                                className="flex gap-4 w-full h-[72px]"
+                            >
+                                <TopBarLeft className="flex-1" />
+                                <TopBarRight className="shrink-0" />
+                            </motion.div>
+                        </motion.div>
 
                         {/* Content Row - Resizable Split */}
                         <div
@@ -136,7 +146,8 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                                 }}
                                 transition={{
                                     duration: 0.5,
-                                    ease: [0.4, 0, 0.2, 1] // Smooth easing
+                                    delay: isTelemetryVisible ? 0 : 0.4, // Wait for panel content fade on exit
+                                    ease: [0.4, 0, 0.2, 1]
                                 }}
                                 className="min-w-0 h-full"
                             >
@@ -149,19 +160,24 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                             </motion.div>
 
                             {/* Resizable Divider - Only when telemetry visible */}
-                            {isTelemetryVisible && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.3 }}
-                                    className="relative flex items-center justify-center w-4 cursor-col-resize group hover:bg-white/5 transition-colors"
-                                    onMouseDown={() => setIsDragging(true)}
-                                >
-                                    {/* Visual indicator */}
-                                    <div className="w-1 h-12 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors" />
-                                </motion.div>
-                            )}
+                            <AnimatePresence>
+                                {isTelemetryVisible && (
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        transition={{
+                                            duration: 0.3,
+                                            delay: isTelemetryVisible ? 0 : 0.9 // Wait for panel to close before fading out
+                                        }}
+                                        className="relative flex items-center justify-center w-4 cursor-col-resize group hover:bg-white/5 transition-colors"
+                                        onMouseDown={() => setIsDragging(true)}
+                                    >
+                                        {/* Visual indicator */}
+                                        <div className="w-1 h-12 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors" />
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
 
                             {/* Telemetry Panel - Slide in/out as solid block */}
                             <AnimatePresence>

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Sparkles, ArrowRight, ChevronRight, Copy, ThumbsUp, ThumbsDown, RefreshCw, CornerDownLeft } from "lucide-react"
+import { Sparkles, ArrowRight, ChevronRight, ChevronLeft, Copy, ThumbsUp, ThumbsDown, RefreshCw, CornerDownLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -309,28 +309,41 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
 
                                         {/* Action Bar */}
                                         {!isLoading && msg.content !== '' && (
-                                            <div className="flex items-center gap-1 mt-2 -ml-2">
+                                            <div className="flex items-center justify-between gap-2 mt-2 -ml-2">
+                                                {/* Left side: Copy, Thumbs, Regenerate */}
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                        <Copy className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                        <ThumbsUp className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                        <ThumbsDown className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                                                        <RefreshCw className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+
+                                                {/* Right side: Show/Hide Telemetry Panel */}
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={onToggleTelemetry}
                                                     className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                                                 >
-                                                    <CornerDownLeft className="h-3.5 w-3.5" />
-                                                    {isTelemetryVisible ? "Hide Telemetry Panel" : "Show Telemetry Panel"}
-                                                </Button>
-                                                <div className="h-4 w-px bg-white/10 mx-1" />
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                                    <Copy className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                                    <ThumbsUp className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                                    <ThumbsDown className="h-3.5 w-3.5" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                                                    <RefreshCw className="h-3.5 w-3.5" />
+                                                    {isTelemetryVisible ? (
+                                                        <>
+                                                            <ChevronLeft className="h-3.5 w-3.5" />
+                                                            Hide Telemetry Panel
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            Show Telemetry Panel
+                                                            <ChevronRight className="h-3.5 w-3.5" />
+                                                        </>
+                                                    )}
                                                 </Button>
                                             </div>
                                         )}
