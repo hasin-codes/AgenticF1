@@ -9,15 +9,12 @@ import { TelemetryPanel } from "@/components/telemetry-panel"
 import { PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TelemetryProvider } from "@/lib/telemetry-context"
-import { useChat } from "@/lib/chat-context"
 
 interface MainLayoutProps {
     initialChatId?: string
 }
 
 export function MainLayout({ initialChatId }: MainLayoutProps) {
-    const { getChatData, setCurrentChatId, createNewChat } = useChat()
-
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false)
 
     // Resizable panel state - chat starts at 35% (smaller), telemetry at 65% (larger)
@@ -25,20 +22,7 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
     const [isDragging, setIsDragging] = React.useState(false)
     const containerRef = React.useRef<HTMLDivElement>(null)
 
-    // Initialize chat if initialChatId is provided
-    React.useEffect(() => {
-        if (initialChatId) {
-            setCurrentChatId(initialChatId)
-            const chatData = getChatData(initialChatId)
-            if (!chatData) {
-                createNewChat(initialChatId)
-            }
-        } else {
-            // If no initialChatId, we are in "new chat" mode
-            // We don't set currentChatId yet, it will be set when first message is sent
-            setCurrentChatId(null as any) // Reset current chat ID
-        }
-    }, [initialChatId, getChatData, createNewChat, setCurrentChatId])
+    // No initialization needed here - ChatInterface handles it all
 
     // Handle mouse move for resizing
     const handleMouseMove = React.useCallback((e: MouseEvent) => {

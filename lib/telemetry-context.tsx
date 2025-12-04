@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, ReactNode } from 'react'
+import React, { createContext, useContext, useState, ReactNode, useCallback, useRef } from 'react'
 
 // Types
 export interface TelemetrySelection {
@@ -27,9 +27,23 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
         totalLaps: 0,
     })
 
-    const updateSelection = (updates: Partial<TelemetrySelection>) => {
-        setSelection(prev => ({ ...prev, ...updates }))
-    }
+    // Use a ref to track the previous selection state
+    const prevSelectionRef = useRef<string>()
+
+    const updateSelection = useCallback((updates: Partial<TelemetrySelection>) => {
+        setSelection(prev => {
+            const newSelection = { ...prev, ...updates }
+            const newSelectionStr = JSON.stringify(newSelection)
+            
+            // Only update if the selection actually changed
+            if (newSelectionStr !== prevSelectionRef.current) {
+                prevSelectionRef.current = newSelectionStr
+                return newSelection
+            }
+            
+            return prev
+        })
+    }, [])
 
     return (
         <TelemetryContext.Provider value={{ selection, updateSelection }}>

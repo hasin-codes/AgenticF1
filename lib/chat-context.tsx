@@ -1,6 +1,6 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { TelemetrySelection } from './telemetry-context'
 import { Message } from './zai-api'
 
@@ -16,13 +16,14 @@ export interface ChatData {
 interface ChatContextType {
     currentChatId: string | null
     chats: Record<string, ChatData>
-    setCurrentChatId: (id: string) => void
-    createNewChat: (id: string) => void
+    setCurrentChatId: (id: string | null) => void
+    createNewChat: (id: string) => ChatData
     updateChatMessages: (chatId: string, messages: Message[]) => void
     updateChatTopbarState: (chatId: string, state: TelemetrySelection) => void
     updateChatTitle: (chatId: string, title: string) => void
     getChatData: (chatId: string) => ChatData | null
     getAllChats: () => ChatData[]
+    deleteChat: (chatId: string) => void
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -38,29 +39,43 @@ const DEFAULT_TOPBAR_STATE: TelemetrySelection = {
 const STORAGE_KEY = 'f1-tele-chats'
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-    const [currentChatId, setCurrentChatId] = useState<string | null>(null)
+    const [currentChatId, setCurrentChatIdState] = useState<string | null>(null)
     const [chats, setChats] = useState<Record<string, ChatData>>({})
+    const [isHydrated, setIsHydrated] = useState(false)
 
-    // Load chats from localStorage on mount
+    // Load chats from localStorage on mount (client-side only)
     useEffect(() => {
-        const stored = localStorage.getItem(STORAGE_KEY)
-        if (stored) {
-            try {
-                setChats(JSON.parse(stored))
-            } catch (error) {
-                console.error('Failed to load chats from localStorage:', error)
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem(STORAGE_KEY)
+            if (stored) {
+                try {
+                    const parsedChats = JSON.parse(stored)
+                    setChats(parsedChats)
+                } catch (error) {
+                    console.error('Failed to load chats from localStorage:', error)
+                    localStorage.removeItem(STORAGE_KEY)
+                }
             }
+            setIsHydrated(true)
         }
     }, [])
 
-    // Save chats to localStorage whenever they change
+    // Save chats to localStorage whenever they change (debounced)
     useEffect(() => {
-        if (Object.keys(chats).length > 0) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
+        if (isHydrated && typeof window !== 'undefined') {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(chats))
+            } catch (error) {
+                console.error('Failed to save chats to localStorage:', error)
+            }
         }
-    }, [chats])
+    }, [chats, isHydrated])
 
-    const createNewChat = React.useCallback((id: string) => {
+    const setCurrentChatId = useCallback((id: string | null) => {
+        setCurrentChatIdState(id)
+    }, [])
+
+    const createNewChat = useCallback((id: string): ChatData => {
         const newChat: ChatData = {
             id,
             title: 'New Chat',
@@ -68,17 +83,36 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             messages: [],
             topbarState: { ...DEFAULT_TOPBAR_STATE }
         }
-        setChats(prev => ({ ...prev, [id]: newChat }))
-        setCurrentChatId(id)
+
+        setChats(prev => {
+            // Only create if it doesn't exist
+            if (prev[id]) {
+                return prev
+            }
+            return { ...prev, [id]: newChat }
+        })
+        setCurrentChatIdState(id)
+
+        return newChat
     }, [])
 
-    const updateChatMessages = React.useCallback((chatId: string, messages: Message[]) => {
+    const updateChatMessages = useCallback((chatId: string, messages: Message[]) => {
         setChats(prev => {
-            if (!prev[chatId]) return prev
+            const chat = prev[chatId]
+            if (!chat) {
+                console.warn(`Attempted to update messages for non-existent chat: ${chatId}`)
+                return prev
+            }
+
+            // Only update if messages actually changed
+            if (JSON.stringify(chat.messages) === JSON.stringify(messages)) {
+                return prev
+            }
+
             return {
                 ...prev,
                 [chatId]: {
-                    ...prev[chatId],
+                    ...chat,
                     messages,
                     timestamp: new Date().toISOString()
                 }
@@ -86,41 +120,68 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         })
     }, [])
 
-    const updateChatTopbarState = React.useCallback((chatId: string, state: TelemetrySelection) => {
+    const updateChatTopbarState = useCallback((chatId: string, state: TelemetrySelection) => {
         setChats(prev => {
-            if (!prev[chatId]) return prev
+            const chat = prev[chatId]
+            if (!chat) {
+                console.warn(`Attempted to update topbar state for non-existent chat: ${chatId}`)
+                return prev
+            }
+
             return {
                 ...prev,
                 [chatId]: {
-                    ...prev[chatId],
+                    ...chat,
                     topbarState: state
                 }
             }
         })
     }, [])
 
-    const updateChatTitle = React.useCallback((chatId: string, title: string) => {
+    const updateChatTitle = useCallback((chatId: string, title: string) => {
         setChats(prev => {
-            if (!prev[chatId]) return prev
+            const chat = prev[chatId]
+            if (!chat) {
+                console.warn(`Attempted to update title for non-existent chat: ${chatId}`)
+                return prev
+            }
+
+            // Only update if title actually changed
+            if (chat.title === title) {
+                return prev
+            }
+
             return {
                 ...prev,
                 [chatId]: {
-                    ...prev[chatId],
+                    ...chat,
                     title
                 }
             }
         })
     }, [])
 
-    const getChatData = React.useCallback((chatId: string): ChatData | null => {
+    const getChatData = useCallback((chatId: string): ChatData | null => {
         return chats[chatId] || null
     }, [chats])
 
-    const getAllChats = React.useCallback((): ChatData[] => {
+    const getAllChats = useCallback((): ChatData[] => {
         return Object.values(chats).sort((a, b) =>
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         )
     }, [chats])
+
+    const deleteChat = useCallback((chatId: string) => {
+        setChats(prev => {
+            const newChats = { ...prev }
+            delete newChats[chatId]
+            return newChats
+        })
+
+        if (currentChatId === chatId) {
+            setCurrentChatIdState(null)
+        }
+    }, [currentChatId])
 
     const contextValue = React.useMemo(() => ({
         currentChatId,
@@ -131,16 +192,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         updateChatTopbarState,
         updateChatTitle,
         getChatData,
-        getAllChats
+        getAllChats,
+        deleteChat
     }), [
         currentChatId,
         chats,
+        setCurrentChatId,
         createNewChat,
         updateChatMessages,
         updateChatTopbarState,
         updateChatTitle,
         getChatData,
-        getAllChats
+        getAllChats,
+        deleteChat
     ])
 
     return (

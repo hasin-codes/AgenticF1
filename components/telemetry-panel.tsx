@@ -4,13 +4,7 @@ import * as React from "react"
 import { Maximize2, Download, Activity } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
+import { Dropdown } from "@/components/ui/dropdown"
 import { motion } from "framer-motion"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, ComposedChart, ReferenceLine } from "recharts"
 import { useTelemetry } from "@/lib/telemetry-context"
@@ -194,30 +188,30 @@ export function TelemetryPanel({ className }: { className?: string }) {
 
                 <div className="flex items-center gap-2">
                     {/* Lap Type Selector */}
-                    <Select value={lapType} onValueChange={setLapType}>
-                        <SelectTrigger className="h-8 w-[120px] text-xs bg-secondary/50 border-white/10">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="fastest">Fastest Lap</SelectItem>
-                            <SelectItem value="specific">Specific Lap</SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <Dropdown
+                        value={lapType}
+                        onValueChange={setLapType}
+                        options={[
+                            { value: "fastest", label: "Fastest Lap" },
+                            { value: "specific", label: "Specific Lap" }
+                        ]}
+                        className="w-[120px] text-xs bg-secondary/50 border-white/10"
+                        size="sm"
+                    />
 
                     {/* Specific Lap Number (shown when lap_type is specific) */}
                     {lapType === 'specific' && selection.totalLaps > 0 && (
-                        <Select value={String(specificLap)} onValueChange={(v) => setSpecificLap(Number(v))}>
-                            <SelectTrigger className="h-8 w-[100px] text-xs bg-secondary/50 border-white/10">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
-                                {Array.from({ length: Math.min(selection.totalLaps, 100) }, (_, i) => i + 1).map(lap => (
-                                    <SelectItem key={lap} value={String(lap)}>
-                                        Lap {lap}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <Dropdown
+                            value={String(specificLap)}
+                            onValueChange={(v) => setSpecificLap(Number(v))}
+                            options={Array.from({ length: Math.min(selection.totalLaps, 100) }, (_, i) => i + 1).map(lap => ({
+                                value: String(lap),
+                                label: `Lap ${lap}`
+                            }))}
+                            className="w-[100px] text-xs bg-secondary/50 border-white/10"
+                            size="sm"
+                            maxHeight="300px"
+                        />
                     )}
 
                     <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/5">

@@ -3,7 +3,6 @@
 import * as React from "react"
 import { Sparkles, ArrowRight, ChevronRight, Copy, ThumbsUp, ThumbsDown, RefreshCw, CornerDownLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
@@ -13,6 +12,8 @@ import AI_Prompt from "@/components/kokonutui/ai-prompt"
 import { sendStreamingChatMessage, Message } from "@/lib/zai-api"
 import { useChat } from "@/lib/chat-context"
 import { useTelemetry } from "@/lib/telemetry-context"
+import { generateUUID } from "@/lib/uuid"
+import { useRouter } from "next/navigation"
 
 interface ChatInterfaceProps {
     className?: string
@@ -20,94 +21,114 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
-    const { getChatData, updateChatMessages, updateChatTitle, createNewChat } = useChat()
+    const router = useRouter()
+    const { getChatData, updateChatMessages, updateChatTitle, createNewChat, setCurrentChatId } = useChat()
 
-    // If chatId is provided, use it. Otherwise we'll generate one on first message
-    const [activeChatId, setActiveChatId] = React.useState<string | undefined>(chatId)
-
-    const chatData = activeChatId ? getChatData(activeChatId) : null
-
-    const [messages, setMessages] = React.useState<Message[]>(chatData?.messages || [])
+    // Local state for messages and loading
+    const [messages, setMessages] = React.useState<Message[]>([])
     const [isLoading, setIsLoading] = React.useState(false)
-    const [messageIdCounter, setMessageIdCounter] = React.useState(
-        chatData?.messages?.length ? Math.max(...chatData.messages.map(m => m.id)) + 1 : 1
-    )
-    const scrollAreaRef = React.useRef<HTMLDivElement>(null)
+    const [messageIdCounter, setMessageIdCounter] = React.useState(1)
+
     const endOfMessagesRef = React.useRef<HTMLDivElement>(null)
     const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
 
-    // Sync messages with chat context
-    React.useEffect(() => {
-        if (chatId) {
-            setActiveChatId(chatId)
-        }
-    }, [chatId])
+    // Track the current chatId being displayed
+    const activeChatIdRef = React.useRef<string | undefined>(chatId)
+    const isInitializedRef = React.useRef(false)
 
+    // Initialize or load chat data when chatId changes - NO CONTEXT FUNCTIONS IN DEPS
     React.useEffect(() => {
-        if (chatData) {
-            setMessages(chatData.messages)
-            if (chatData.messages.length) {
-                setMessageIdCounter(Math.max(...chatData.messages.map(m => m.id)) + 1)
+        activeChatIdRef.current = chatId
+        isInitializedRef.current = false
+
+        if (chatId) {
+            // Load existing chat
+            setCurrentChatId(chatId)
+            const chatData = getChatData(chatId)
+
+            if (chatData) {
+                // Chat exists, load its messages
+                setMessages(chatData.messages)
+                setMessageIdCounter(
+                    chatData.messages.length > 0
+                        ? Math.max(...chatData.messages.map(m => m.id)) + 1
+                        : 1
+                )
+            } else {
+                // Chat doesn't exist, create it
+                createNewChat(chatId)
+                setMessages([])
+                setMessageIdCounter(1)
             }
-        } else if (!activeChatId) {
-            // Reset for new chat
+        } else {
+            // No chatId means we're in "new chat" mode
+            setCurrentChatId(null)
             setMessages([])
             setMessageIdCounter(1)
         }
-    }, [activeChatId, chatData])
 
-    // Update chat context when messages change
+        isInitializedRef.current = true
+    }, [chatId]) // ONLY chatId in dependencies
+
+    // Sync messages to context - separate effect with proper guards
     React.useEffect(() => {
-        if (messages.length > 0 && activeChatId) {
-            // Check if messages are actually different from context to avoid infinite loop
-            if (chatData &&
-                chatData.messages.length === messages.length &&
-                chatData.messages[chatData.messages.length - 1]?.id === messages[messages.length - 1]?.id) {
-                return
-            }
+        // Don't sync if not initialized or no active chat or no messages
+        if (!isInitializedRef.current || !activeChatIdRef.current || messages.length === 0) {
+            return
+        }
 
-            updateChatMessages(activeChatId, messages)
+        // Get current chat data
+        const currentChatData = getChatData(activeChatIdRef.current)
+        if (!currentChatData) return
 
-            // Update chat title based on first user message
-            const firstUserMessage = messages.find(m => m.role === 'user')
-            if (firstUserMessage && chatData?.title === 'New Chat') {
-                const title = firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '')
-                updateChatTitle(activeChatId, title)
+        // Only update if messages actually changed
+        const currentMessagesJson = JSON.stringify(currentChatData.messages)
+        const newMessagesJson = JSON.stringify(messages)
+
+        if (currentMessagesJson !== newMessagesJson) {
+            updateChatMessages(activeChatIdRef.current, messages)
+
+            // Update title based on first user message if still "New Chat"
+            if (currentChatData.title === 'New Chat') {
+                const firstUserMessage = messages.find(m => m.role === 'user')
+                if (firstUserMessage) {
+                    const title = firstUserMessage.content.slice(0, 50) +
+                        (firstUserMessage.content.length > 50 ? '...' : '')
+                    updateChatTitle(activeChatIdRef.current, title)
+                }
             }
         }
-    }, [messages, activeChatId, updateChatMessages, updateChatTitle, chatData])
+    }, [messages]) // ONLY messages in dependencies
 
-    // Check if user is at the bottom to determine if we should auto-scroll
-    const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    // Auto-scroll logic
+    const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
         const target = event.target as HTMLDivElement
         const { scrollTop, scrollHeight, clientHeight } = target
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 100
         setShouldAutoScroll(isAtBottom)
-    }
+    }, [])
 
-    const scrollToBottom = (smooth = true) => {
+    const scrollToBottom = React.useCallback((smooth = true) => {
         if (endOfMessagesRef.current) {
             endOfMessagesRef.current.scrollIntoView({
                 behavior: smooth ? "smooth" : "auto",
                 block: "end"
             })
         }
-    }
+    }, [])
 
-    // Scroll on new messages if we should
     React.useEffect(() => {
         if (shouldAutoScroll) {
             scrollToBottom()
         }
-    }, [messages, shouldAutoScroll])
+    }, [messages, shouldAutoScroll, scrollToBottom])
 
-    // Force scroll to bottom when loading starts
     React.useEffect(() => {
         if (isLoading) {
             setShouldAutoScroll(true)
             scrollToBottom()
         }
-    }, [isLoading])
+    }, [isLoading, scrollToBottom])
 
     const formatTimestamp = () => {
         const now = new Date()
@@ -119,25 +140,23 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
     }
 
     const handleSendMessage = async (userMessage: string) => {
-        if (isLoading) return
+        if (isLoading || !userMessage.trim()) return
 
-        let currentActiveId = activeChatId
+        let currentChatId = activeChatIdRef.current
 
-        // Create new chat if needed
-        if (!currentActiveId) {
-            const { generateUUID } = await import('@/lib/uuid')
-            const newId = generateUUID()
-            createNewChat(newId)
-            setActiveChatId(newId)
-            currentActiveId = newId
+        // Create new chat if we don't have one
+        if (!currentChatId) {
+            currentChatId = generateUUID()
+            createNewChat(currentChatId)
+            activeChatIdRef.current = currentChatId
+            isInitializedRef.current = true
 
             // Update URL without reloading
-            window.history.pushState({}, '', `/c/${newId}`)
+            router.push(`/c/${currentChatId}`)
         }
 
         const newUserMsgId = messageIdCounter
         const aiPlaceholderId = messageIdCounter + 1
-        const errorMsgId = messageIdCounter + 2
 
         const userMsg: Message = {
             id: newUserMsgId,
@@ -146,24 +165,25 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
             timestamp: formatTimestamp()
         }
 
+        // Add user message
         setMessages(prev => [...prev, userMsg])
-        setMessageIdCounter(prev => prev + 3)
+        setMessageIdCounter(prev => prev + 2)
         setIsLoading(true)
         setShouldAutoScroll(true)
 
         try {
-            const apiMessages = messages
-                .filter(msg => msg.id !== aiPlaceholderId)
-                .map(msg => ({
-                    role: (msg.role === 'ai' ? 'assistant' : msg.role) as 'user' | 'assistant' | 'system',
-                    content: msg.content
-                }))
+            // Prepare API messages
+            const apiMessages = messages.map(msg => ({
+                role: (msg.role === 'ai' ? 'assistant' : msg.role) as 'user' | 'assistant' | 'system',
+                content: msg.content
+            }))
 
             apiMessages.push({
                 role: 'user',
                 content: userMessage
             })
 
+            // Create AI placeholder
             const aiPlaceholder: Message = {
                 id: aiPlaceholderId,
                 role: 'ai',
@@ -173,6 +193,7 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
 
             setMessages(prev => [...prev, aiPlaceholder])
 
+            // Stream AI response
             let fullResponse = ''
             await sendStreamingChatMessage(
                 apiMessages,
@@ -189,6 +210,7 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
                 }
             )
 
+            // Update with final response and check for telemetry action
             setMessages(prev =>
                 prev.map(msg =>
                     msg.id === aiPlaceholderId
@@ -205,13 +227,17 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
 
         } catch (error) {
             console.error('Error sending message:', error)
+
+            const errorMsgId = messageIdCounter + 2
             const errorMsg: Message = {
                 id: errorMsgId,
                 role: 'ai',
                 content: 'Sorry, I encountered an error while processing your request. Please try again.',
                 timestamp: formatTimestamp()
             }
+
             setMessages(prev => [...prev, errorMsg])
+            setMessageIdCounter(prev => prev + 1)
         } finally {
             setIsLoading(false)
         }
@@ -227,14 +253,14 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
                 className
             )}
         >
-            {/* Header / Status Bar could go here if needed */}
-
             {/* Messages Area */}
             <div className="flex-1 overflow-hidden relative">
-                <ScrollArea
-                    ref={scrollAreaRef}
-                    className="h-full w-full"
-                    onScrollCapture={handleScroll} // Capture scroll events to update auto-scroll state
+                <div
+                    className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+                    onScroll={handleScroll}
+                    style={{
+                        scrollBehavior: 'smooth'
+                    }}
                 >
                     <div className="flex flex-col p-6 space-y-8 min-h-full">
                         {messages.map((msg, index) => (
@@ -331,7 +357,7 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
                         ))}
                         <div ref={endOfMessagesRef} className="h-4" />
                     </div>
-                </ScrollArea>
+                </div>
 
                 {/* Gradient overlay for top fade */}
                 <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-card to-transparent pointer-events-none z-10" />

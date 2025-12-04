@@ -62,21 +62,43 @@ export function TopBarLeft({ className }: { className?: string }) {
     const [loadingEvents, setLoadingEvents] = React.useState(false)
     const [loadingDrivers, setLoadingDrivers] = React.useState(false)
 
-    // Load saved topbar state for current chat
+    // Use refs to track initialization and prevent loops
+    const isInitialized = React.useRef(false)
+    const isLoadingState = React.useRef(false)
+    const prevSelectionRef = React.useRef<string | undefined>(undefined)
+    const prevCurrentChatIdRef = React.useRef<string | undefined>(undefined)
+
+    // Initialize component and load saved state
     React.useEffect(() => {
-        if (currentChatId) {
-            const chatData = getChatData(currentChatId)
-            if (chatData && chatData.topbarState) {
-                // Load saved state
-                updateSelection(chatData.topbarState)
+        if (!isInitialized.current) {
+            isInitialized.current = true
+            
+            // Load saved state if we have a current chat
+            if (currentChatId) {
+                const chatData = getChatData(currentChatId)
+                if (chatData && chatData.topbarState) {
+                    const currentState = JSON.stringify(selection)
+                    const savedState = JSON.stringify(chatData.topbarState)
+                    if (currentState !== savedState) {
+                        isLoadingState.current = true
+                        updateSelection(chatData.topbarState)
+                        setTimeout(() => {
+                            isLoadingState.current = false
+                        }, 100)
+                    }
+                }
             }
         }
     }, [currentChatId, getChatData])
 
-    // Save topbar state to chat context whenever it changes
+    // Save topbar state to chat context whenever it changes (but not during loading)
     React.useEffect(() => {
-        if (currentChatId) {
-            updateChatTopbarState(currentChatId, selection)
+        if (isInitialized.current && currentChatId && !isLoadingState.current) {
+            const currentSelectionStr = JSON.stringify(selection)
+            if (currentSelectionStr !== prevSelectionRef.current) {
+                prevSelectionRef.current = currentSelectionStr
+                updateChatTopbarState(currentChatId, selection)
+            }
         }
     }, [selection, currentChatId, updateChatTopbarState])
 
@@ -90,71 +112,101 @@ export function TopBarLeft({ className }: { className?: string }) {
         { id: "2018", label: "2018" },
     ]
 
+    // Use a ref to track the previous year
+    const prevYearRef = React.useRef<string | undefined>(undefined)
+
     // Fetch events when year changes
     React.useEffect(() => {
-        const fetchEvents = async () => {
-            setLoadingEvents(true)
-            updateSelection({ gp: null, selectedDrivers: [] })
-            setDrivers([])
+        if (isInitialized.current && selection.year !== prevYearRef.current) {
+            prevYearRef.current = selection.year
+            const fetchEvents = async () => {
+                setLoadingEvents(true)
+                updateSelection({ gp: null, selectedDrivers: [] })
+                setDrivers([])
 
-            try {
-                const response = await fetch(`/api/telemetry/events?year=${selection.year}`)
-                if (response.ok) {
-                    const data = await response.json()
-                    const raceEvents = data.events?.filter((e: F1Event) => e.round > 0) || []
-                    setEvents(raceEvents)
+                try {
+                    const response = await fetch(`/api/telemetry/events?year=${selection.year}`)
+                    if (response.ok) {
+                        const data = await response.json()
+                        const raceEvents = data.events?.filter((e: F1Event) => e.round > 0) || []
+                        setEvents(raceEvents)
 
-                    if (raceEvents.length > 0) {
-                        updateSelection({ gp: raceEvents[0].event_name })
+                        if (raceEvents.length > 0 && !isLoadingState.current) {
+                            updateSelection({ gp: raceEvents[0].event_name })
+                        }
+                    } else {
+                        setEvents([])
                     }
-                } else {
+                } catch (error) {
+                    console.error('Error fetching events:', error)
                     setEvents([])
+                } finally {
+                    setLoadingEvents(false)
                 }
-            } catch (error) {
-                console.error('Error fetching events:', error)
-                setEvents([])
-            } finally {
-                setLoadingEvents(false)
             }
-        }
 
-        fetchEvents()
+            fetchEvents()
+        }
     }, [selection.year])
 
-    // Fetch drivers when GP or session changes
+    // Use refs to track previous GP and session values
+    const prevGpRef = React.useRef<string | null>(null)
+    const prevSessionRef = React.useRef<string | undefined>(undefined)
+
+    // Fetch drivers when GP or session changes (but only after initialization)
     React.useEffect(() => {
-        if (!selection.gp) {
-            setDrivers([])
-            updateSelection({ selectedDrivers: [], totalLaps: 0 })
-            return
-        }
-
-        const fetchDrivers = async () => {
-            setLoadingDrivers(true)
-            updateSelection({ selectedDrivers: [] })
-
-            try {
-                const response = await fetch(
-                    `/api/telemetry/session?year=${selection.year}&gp=${encodeURIComponent(selection.gp || '')}&session=${selection.session}`
-                )
-                if (response.ok) {
-                    const data: SessionMetadata = await response.json()
-                    setDrivers(data.drivers || [])
-                    updateSelection({ totalLaps: data.total_laps || 0 })
-                } else {
-                    setDrivers([])
-                    updateSelection({ totalLaps: 0 })
-                }
-            } catch (error) {
-                console.error('Error fetching drivers:', error)
+        if (!isInitialized.current) return
+        
+        const gpChanged = selection.gp !== prevGpRef.current
+        const sessionChanged = selection.session !== prevSessionRef.current
+        
+        if (gpChanged || sessionChanged) {
+            prevGpRef.current = selection.gp || null
+            prevSessionRef.current = selection.session
+            
+            if (!selection.gp) {
                 setDrivers([])
-                updateSelection({ totalLaps: 0 })
-            } finally {
-                setLoadingDrivers(false)
+                if (!isLoadingState.current) {
+                    updateSelection({ selectedDrivers: [], totalLaps: 0 })
+                }
+                return
             }
-        }
 
-        fetchDrivers()
+            const fetchDrivers = async () => {
+                setLoadingDrivers(true)
+                if (!isLoadingState.current) {
+                    updateSelection({ selectedDrivers: [] })
+                }
+
+                try {
+                    const response = await fetch(
+                        `/api/telemetry/session?year=${selection.year}&gp=${encodeURIComponent(selection.gp || '')}&session=${selection.session}`
+                    )
+                    if (response.ok) {
+                        const data: SessionMetadata = await response.json()
+                        setDrivers(data.drivers || [])
+                        if (!isLoadingState.current) {
+                            updateSelection({ totalLaps: data.total_laps || 0 })
+                        }
+                    } else {
+                        setDrivers([])
+                        if (!isLoadingState.current) {
+                            updateSelection({ totalLaps: 0 })
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching drivers:', error)
+                    setDrivers([])
+                    if (!isLoadingState.current) {
+                        updateSelection({ totalLaps: 0 })
+                    }
+                } finally {
+                    setLoadingDrivers(false)
+                }
+            }
+
+            fetchDrivers()
+        }
     }, [selection.year, selection.gp, selection.session])
 
     // Convert events to dropdown items
