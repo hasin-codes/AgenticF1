@@ -18,8 +18,8 @@ import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { cn } from "@/lib/utils";
 
 interface AI_PromptProps {
-	onSendMessage?: (message: string) => void;
-	disabled?: boolean;
+  onSendMessage?: (message: string) => void;
+  disabled?: boolean;
 }
 
 export default function AI_Prompt({ onSendMessage, disabled = false }: AI_PromptProps) {
@@ -75,7 +75,7 @@ export default function AI_Prompt({ onSendMessage, disabled = false }: AI_Prompt
                 adjustHeight();
               }}
               onKeyDown={handleKeyDown}
-              placeholder={"Ask about telemetry, strategy, or tire data..."}
+              placeholder={"Ask Revvi about telemetry, lap times, or driver comparisons..."}
               ref={textareaRef}
               value={value}
             />
