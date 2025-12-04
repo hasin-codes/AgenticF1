@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { TopBarLeft, TopBarRight } from "@/components/top-bar"
 import { ChatInterface } from "@/components/chat-interface"
+import { motion, AnimatePresence } from "framer-motion"
 import { TelemetryPanel } from "@/components/telemetry-panel"
 import { PanelLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ initialChatId }: MainLayoutProps) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false)
+    const [isTelemetryVisible, setIsTelemetryVisible] = React.useState(false)
 
     // Resizable panel state - chat starts at 35% (smaller), telemetry at 65% (larger)
     const [chatWidth, setChatWidth] = React.useState(35)
@@ -67,6 +69,10 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
         }
     }, [isDragging, handleMouseMove, handleMouseUp])
 
+    const toggleTelemetry = React.useCallback(() => {
+        setIsTelemetryVisible(prev => !prev)
+    }, [])
+
     return (
         <TelemetryProvider>
             <SidebarProvider
@@ -102,41 +108,87 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                     {/* Main Content Area */}
                     <div className="flex-1 flex flex-col min-w-0 pl-4 pr-6 pt-6 pb-6 mr-6">
 
-                        {/* Top Bar Row */}
-                        <div className="flex gap-4 h-[72px] shrink-0 mb-4">
-                            <TopBarLeft className="flex-1" />
-                            <TopBarRight className="shrink-0" />
-                        </div>
+                        {/* Top Bar Row - Conditionally Rendered with Animation */}
+                        <AnimatePresence>
+                            {isTelemetryVisible && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.4, delay: 0.3 }} // Staggered delay
+                                    className="flex gap-4 h-[72px] shrink-0 mb-4"
+                                >
+                                    <TopBarLeft className="flex-1" />
+                                    <TopBarRight className="shrink-0" />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         {/* Content Row - Resizable Split */}
                         <div
                             ref={containerRef}
                             className="flex-1 flex min-h-0 relative"
                         >
-                            {/* Chat Panel */}
-                            <div
-                                style={{ width: `${chatWidth}%` }}
-                                className="min-w-0"
+                            {/* Chat Panel - Animates width */}
+                            <motion.div
+                                animate={{
+                                    width: isTelemetryVisible ? `${chatWidth}%` : "100%"
+                                }}
+                                transition={{
+                                    duration: 0.5,
+                                    ease: [0.4, 0, 0.2, 1] // Smooth easing
+                                }}
+                                className="min-w-0 h-full"
                             >
-                                <ChatInterface className="h-full" chatId={initialChatId} />
-                            </div>
+                                <ChatInterface
+                                    className="h-full"
+                                    chatId={initialChatId}
+                                    isTelemetryVisible={isTelemetryVisible}
+                                    onToggleTelemetry={toggleTelemetry}
+                                />
+                            </motion.div>
 
-                            {/* Resizable Divider */}
-                            <div
-                                className="relative flex items-center justify-center w-4 cursor-col-resize group hover:bg-white/5 transition-colors"
-                                onMouseDown={() => setIsDragging(true)}
-                            >
-                                {/* Visual indicator */}
-                                <div className="w-1 h-12 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors" />
-                            </div>
+                            {/* Resizable Divider - Only when telemetry visible */}
+                            {isTelemetryVisible && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="relative flex items-center justify-center w-4 cursor-col-resize group hover:bg-white/5 transition-colors"
+                                    onMouseDown={() => setIsDragging(true)}
+                                >
+                                    {/* Visual indicator */}
+                                    <div className="w-1 h-12 bg-white/10 rounded-full group-hover:bg-white/20 transition-colors" />
+                                </motion.div>
+                            )}
 
-                            {/* Telemetry Panel */}
-                            <div
-                                style={{ width: `${100 - chatWidth - 1}%` }}
-                                className="min-w-0"
-                            >
-                                <TelemetryPanel className="h-full" />
-                            </div>
+                            {/* Telemetry Panel - Slide in/out as solid block */}
+                            <AnimatePresence>
+                                {isTelemetryVisible && (
+                                    <motion.div
+                                        initial={{ width: 0, opacity: 1 }} // Start with 0 width but full opacity (solid block)
+                                        animate={{
+                                            width: `${100 - chatWidth - 1}%`,
+                                            opacity: 1
+                                        }}
+                                        exit={{
+                                            width: 0,
+                                            opacity: 1,
+                                            transition: { duration: 0.5, ease: [0.4, 0, 0.2, 1], delay: 0.4 } // Delay exit to let content fade out
+                                        }}
+                                        transition={{
+                                            duration: 0.5,
+                                            ease: [0.4, 0, 0.2, 1]
+                                        }}
+                                        className="min-w-0 h-full overflow-hidden" // overflow-hidden is crucial for sliding effect
+                                    >
+                                        <div className="w-full h-full min-w-[500px]"> {/* Ensure content has width during slide */}
+                                            <TelemetryPanel className="h-full" />
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </div>
 
                     </div>

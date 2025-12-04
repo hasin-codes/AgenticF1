@@ -18,9 +18,11 @@ import { useRouter } from "next/navigation"
 interface ChatInterfaceProps {
     className?: string
     chatId?: string
+    isTelemetryVisible?: boolean
+    onToggleTelemetry?: () => void
 }
 
-export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
+export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleTelemetry }: ChatInterfaceProps) {
     const router = useRouter()
     const { getChatData, updateChatMessages, updateChatTitle, createNewChat, setCurrentChatId } = useChat()
 
@@ -308,9 +310,14 @@ export function ChatInterface({ className, chatId }: ChatInterfaceProps) {
                                         {/* Action Bar */}
                                         {!isLoading && msg.content !== '' && (
                                             <div className="flex items-center gap-1 mt-2 -ml-2">
-                                                <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={onToggleTelemetry}
+                                                    className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                                                >
                                                     <CornerDownLeft className="h-3.5 w-3.5" />
-                                                    Insert
+                                                    {isTelemetryVisible ? "Hide Telemetry Panel" : "Show Telemetry Panel"}
                                                 </Button>
                                                 <div className="h-4 w-px bg-white/10 mx-1" />
                                                 <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">

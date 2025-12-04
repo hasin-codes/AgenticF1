@@ -71,7 +71,7 @@ export function TopBarLeft({ className }: { className?: string }) {
     React.useEffect(() => {
         if (!isInitialized.current) {
             isInitialized.current = true
-            
+
             // Load saved state if we have a current chat
             if (currentChatId) {
                 const chatData = getChatData(currentChatId)
@@ -155,14 +155,14 @@ export function TopBarLeft({ className }: { className?: string }) {
     // Fetch drivers when GP or session changes (but only after initialization)
     React.useEffect(() => {
         if (!isInitialized.current) return
-        
+
         const gpChanged = selection.gp !== prevGpRef.current
         const sessionChanged = selection.session !== prevSessionRef.current
-        
+
         if (gpChanged || sessionChanged) {
             prevGpRef.current = selection.gp || null
             prevSessionRef.current = selection.session
-            
+
             if (!selection.gp) {
                 setDrivers([])
                 if (!isLoadingState.current) {
@@ -236,8 +236,6 @@ export function TopBarLeft({ className }: { className?: string }) {
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
             className={cn(
                 "h-[72px] flex items-center gap-4 px-6 bg-card border border-white/5 rounded-[18px] floaty-shadow z-20",
                 className
@@ -350,8 +348,6 @@ export function TopBarLeft({ className }: { className?: string }) {
 export function TopBarRight({ className }: { className?: string }) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
             className={cn(
                 "h-[72px] min-w-[360px] flex items-center justify-end gap-6 px-6 bg-card border border-white/5 rounded-[18px] floaty-shadow z-20",
                 className
