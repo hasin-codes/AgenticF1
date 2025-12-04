@@ -247,8 +247,8 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
 
     return (
         <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             className={cn(
                 "flex flex-col h-full bg-card rounded-[24px] overflow-hidden border border-white/5 shadow-2xl shadow-black/50",

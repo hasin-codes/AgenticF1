@@ -109,38 +109,48 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                     <div className="flex-1 flex flex-col min-w-0 pl-4 pr-6 pt-6 pb-6 mr-6">
 
                         {/* Top Bar Row - Always rendered but animates height/opacity */}
-                        <motion.div
-                            animate={{
-                                height: isTelemetryVisible ? "72px" : "0px",
-                                marginBottom: isTelemetryVisible ? "16px" : "0px",
-                                opacity: isTelemetryVisible ? 1 : 0,
-                            }}
-                            transition={{
-                                height: { duration: 0.4, delay: isTelemetryVisible ? 0.3 : 0.9, ease: [0.4, 0, 0.2, 1] },
-                                marginBottom: { duration: 0.4, delay: isTelemetryVisible ? 0.3 : 0.9, ease: [0.4, 0, 0.2, 1] },
-                                opacity: { duration: 0.3, delay: isTelemetryVisible ? 0.4 : 0.9 }
-                            }}
-                            className="flex gap-4 shrink-0 overflow-hidden"
-                        >
-                            <motion.div
-                                animate={{
-                                    y: isTelemetryVisible ? 0 : -20
-                                }}
-                                transition={{ duration: 0.4, delay: isTelemetryVisible ? 0.3 : 0.9 }}
-                                className="flex gap-4 w-full h-[72px]"
-                            >
-                                <TopBarLeft className="flex-1" />
-                                <TopBarRight className="shrink-0" />
-                            </motion.div>
-                        </motion.div>
+                        {/* Top Bar Row - Only rendered when telemetry is visible */}
+                        <AnimatePresence>
+                            {isTelemetryVisible && (
+                                <motion.div
+                                    initial={{ height: 0, marginBottom: 0, opacity: 0 }}
+                                    animate={{
+                                        height: "72px",
+                                        marginBottom: "16px",
+                                        opacity: 1,
+                                        transition: {
+                                            height: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                            marginBottom: { duration: 0.4, ease: [0.4, 0, 0.2, 1] },
+                                            opacity: { duration: 0.3, delay: 0.1 }
+                                        }
+                                    }}
+                                    exit={{
+                                        height: 0,
+                                        marginBottom: 0,
+                                        opacity: 0,
+                                        transition: {
+                                            height: { duration: 0.3, delay: 0.1, ease: [0.4, 0, 0.2, 1] },
+                                            marginBottom: { duration: 0.3, delay: 0.1, ease: [0.4, 0, 0.2, 1] },
+                                            opacity: { duration: 0.2 }
+                                        }
+                                    }}
+                                    className="flex gap-4 shrink-0 overflow-hidden"
+                                >
+                                    <div className="flex gap-4 w-full h-[72px]">
+                                        <TopBarLeft className="flex-1" />
+                                        <TopBarRight className="shrink-0" />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
 
                         {/* Content Row - Resizable Split */}
                         <div
                             ref={containerRef}
                             className="flex-1 flex min-h-0 relative"
                         >
-                            {/* Chat Panel - Animates width */}
                             <motion.div
+                                initial={false}
                                 animate={{
                                     width: isTelemetryVisible ? `${chatWidth}%` : "100%"
                                 }}
