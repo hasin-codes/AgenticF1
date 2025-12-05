@@ -206,9 +206,17 @@
     color: inherit;
   }
 
-  .prose h1 { font-size: 1.25rem; }
-  .prose h2 { font-size: 1.125rem; }
-  .prose h3 { font-size: 1rem; }
+  .prose h1 {
+    font-size: 1.25rem;
+  }
+
+  .prose h2 {
+    font-size: 1.125rem;
+  }
+
+  .prose h3 {
+    font-size: 1rem;
+  }
 
   .prose ul,
   .prose ol {

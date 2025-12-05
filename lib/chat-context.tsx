@@ -16,6 +16,7 @@ export interface ChatData {
 interface ChatContextType {
     currentChatId: string | null
     chats: Record<string, ChatData>
+    appLoaded: boolean
     setCurrentChatId: (id: string | null) => void
     createNewChat: (id: string) => ChatData
     updateChatMessages: (chatId: string, messages: Message[]) => void
@@ -29,7 +30,7 @@ interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
 
 const DEFAULT_TOPBAR_STATE: TelemetrySelection = {
-    year: '2024',
+    year: null,
     gp: null,
     session: 'R',
     selectedDrivers: [],
@@ -42,6 +43,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const [currentChatId, setCurrentChatIdState] = useState<string | null>(null)
     const [chats, setChats] = useState<Record<string, ChatData>>({})
     const [isHydrated, setIsHydrated] = useState(false)
+
+    const [appLoaded, setAppLoaded] = useState(false)
 
     // Load chats from localStorage on mount (client-side only)
     useEffect(() => {
@@ -57,6 +60,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                 }
             }
             setIsHydrated(true)
+
+            // Set appLoaded after a short delay to allow initial animations if needed
+            // or immediately if we want to track "has the app been loaded at all"
+            setAppLoaded(true)
         }
     }, [])
 
@@ -186,6 +193,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const contextValue = React.useMemo(() => ({
         currentChatId,
         chats,
+        appLoaded,
         setCurrentChatId,
         createNewChat,
         updateChatMessages,
@@ -197,6 +205,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     }), [
         currentChatId,
         chats,
+        appLoaded,
         setCurrentChatId,
         createNewChat,
         updateChatMessages,

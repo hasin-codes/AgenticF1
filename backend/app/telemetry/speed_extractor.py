@@ -205,21 +205,19 @@ def _get_team_color(team: str, driver: str) -> str:
         Hex color code
     """
     # F1 2024 team colors
+    # F1 2024 team colors (official F1 website graphics)
     team_colors = {
-        'red bull racing': '#1E5F63',
-        'ferrari': '#DC0000',
-        'mercedes': '#00D2BE',
-        'mclaren': '#FF8700',
-        'aston martin': '#006F62',
-        'alpine': '#0090FF',
-        'williams': '#005AFF',
-        'alphatauri': '#2B4562',
-        'rb': '#2B4562',
-        'alfa romeo': '#900000',
-        'haas': '#FFFFFF',
-        'sauber': '#00E701',
-        'kick sauber': '#00E701'
-    }
+    'red bull racing': '#3671C6',
+    'ferrari': '#E8002D',
+    'mercedes': '#27F4D2',
+    'mclaren': '#FF8000',
+    'aston martin': '#229971',
+    'alpine': '#FF87BC',
+    'williams': '#64C4FF',
+    'rb': '#6692FF',
+    'kick sauber': '#52E252',
+    'haas': '#B6BABD'
+}
     
     team_lower = team.lower()
     for team_key, color in team_colors.items():

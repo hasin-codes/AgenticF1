@@ -24,7 +24,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleTelemetry }: ChatInterfaceProps) {
     const router = useRouter()
-    const { getChatData, updateChatMessages, updateChatTitle, createNewChat, setCurrentChatId } = useChat()
+    const { getChatData, updateChatMessages, updateChatTitle, createNewChat, setCurrentChatId, appLoaded } = useChat()
 
     // Local state for messages and loading
     const [messages, setMessages] = React.useState<Message[]>([])
@@ -327,7 +327,7 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
 
     return (
         <motion.div
-            initial={{ opacity: 0 }}
+            initial={appLoaded ? { opacity: 1 } : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             className={cn(

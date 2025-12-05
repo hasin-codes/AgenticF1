@@ -106,6 +106,23 @@
 
 ## Recent Updates (Latest Session)
 
+### Session: December 5th, 2025 - UI Refinements & Bug Fixes
+1. **Sidebar enhancements**:
+   - **Decoupled State**: Sidebar collapse logic is now independent of the telemetry panel state.
+   - **Smooth Animations**: Refined collapse/expand animations for a natural feel; implemented programmatic toggle.
+   - **Visual Stability**: Fixed layout shifts during sidebar state changes.
+
+2. **Top Bar Polish**:
+   - **Dropdown Styling**: Implemented thinner, less intrusive vertical scrollbars and hidden horizontal scrollbars for a cleaner look.
+   - **Year Selection**: Set "Select Year" as the default state to encourage explicit user choice.
+   - **Visibility Logic**: Top Bar is now strictly conditional, appearing only when the telemetry panel is active.
+   - **Z-Index Fixes**: Resolved issues where dropdowns were being clipped by the topbar container.
+
+3. **Critical Bug Fixes**:
+   - **First Message Render**: Fixed a race condition where the first AI response failed to render visually on a newly created chat URL.
+   - **Chat Interface Stability**: Eliminated visual jumps in the chat interface when toggling the telemetry panel.
+   - **New Chat Flow**: Smoothed out the animation and state transitions when creating a new chat session.
+
 ### Session: December 3rd, 2025 - UI/UX Enhancements
 1. **Dropdown Component Styling**: 
    - Inverted color scheme: default state now uses light background (`bg-secondary/50`)
@@ -280,6 +297,6 @@ python run.py         # Start backend server
 
 ---
 
-*Last Updated: December 3, 2025*
-*Version: 0.2.1*
+*Last Updated: December 5, 2025*
+*Version: 0.2.2*
 *Status: Active Development - UI/UX Polish & Chart Enhancements*
