@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 
 // Types
 export interface TelemetrySelection {
-    year: string
+    year: string | null
     gp: string | null
     session: string
     selectedDrivers: string[]
@@ -20,7 +20,7 @@ const TelemetryContext = createContext<TelemetryContextType | undefined>(undefin
 
 export function TelemetryProvider({ children }: { children: ReactNode }) {
     const [selection, setSelection] = useState<TelemetrySelection>({
-        year: '2024',
+        year: null,
         gp: null,
         session: 'R',
         selectedDrivers: [],
@@ -34,13 +34,13 @@ export function TelemetryProvider({ children }: { children: ReactNode }) {
         setSelection(prev => {
             const newSelection = { ...prev, ...updates }
             const newSelectionStr = JSON.stringify(newSelection)
-            
+
             // Only update if the selection actually changed
             if (newSelectionStr !== prevSelectionRef.current) {
                 prevSelectionRef.current = newSelectionStr
                 return newSelection
             }
-            
+
             return prev
         })
     }, [])

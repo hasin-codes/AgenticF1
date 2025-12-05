@@ -103,7 +103,7 @@ interface AppSidebarProps {
     logoAlt?: string
     appName?: string
     // Optional: Ref for the collapse button (for programmatic triggering)
-    collapseButtonRef?: React.RefObject<HTMLButtonElement>
+    collapseButtonRef?: React.RefObject<HTMLButtonElement | null>
 }
 
 // ============================================================================

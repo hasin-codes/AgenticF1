@@ -102,6 +102,7 @@ export function TopBarLeft({ className }: { className?: string }) {
     }, [selection, currentChatId, updateChatTopbarState])
 
     const yearItems = [
+        { id: "2025", label: "2025" },
         { id: "2024", label: "2024" },
         { id: "2023", label: "2023" },
         { id: "2022", label: "2022" },
@@ -112,13 +113,21 @@ export function TopBarLeft({ className }: { className?: string }) {
     ]
 
     // Use a ref to track the previous year
-    const prevYearRef = React.useRef<string | undefined>(undefined)
+    const prevYearRef = React.useRef<string | null | undefined>(undefined)
 
     // Fetch events when year changes
     React.useEffect(() => {
         if (isInitialized.current && selection.year !== prevYearRef.current) {
             prevYearRef.current = selection.year
             const fetchEvents = async () => {
+                // If no year is selected, reset events and return
+                if (!selection.year) {
+                    setEvents([])
+                    updateSelection({ gp: null, selectedDrivers: [] })
+                    setDrivers([])
+                    return
+                }
+
                 setLoadingEvents(true)
                 updateSelection({ gp: null, selectedDrivers: [] })
                 setDrivers([])
@@ -244,10 +253,10 @@ export function TopBarLeft({ className }: { className?: string }) {
             {/* Year Selector */}
             <div className="flex items-center">
                 <BasicDropdown
-                    label={selection.year}
+                    label={selection.year || "Select Year"}
                     items={yearItems}
                     onChange={(item) => updateSelection({ year: String(item.id) })}
-                    className="w-[100px]"
+                    className="w-[130px]"
                 />
             </div>
 
@@ -308,7 +317,7 @@ export function TopBarLeft({ className }: { className?: string }) {
                     </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
-                    className="w-[200px] max-h-[300px] overflow-y-auto bg-popover/95 backdrop-blur-xl border-white/10"
+                    className="w-[200px] max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent bg-popover/95 backdrop-blur-xl border-white/10"
                     align="end"
                 >
                     <DropdownMenuLabel className="text-xs text-muted-foreground">

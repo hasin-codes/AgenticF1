@@ -73,18 +73,8 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
     }, [isDragging, handleMouseMove, handleMouseUp])
 
     const toggleTelemetry = React.useCallback(() => {
-        setIsTelemetryVisible(prev => {
-            const newValue = !prev
-            // If showing telemetry and sidebar is expanded, trigger the collapse button click
-            if (newValue && !isSidebarCollapsed && sidebarCollapseButtonRef.current) {
-                // Use a small delay to ensure smooth transition
-                setTimeout(() => {
-                    sidebarCollapseButtonRef.current?.click()
-                }, 0)
-            }
-            return newValue
-        })
-    }, [isSidebarCollapsed])
+        setIsTelemetryVisible(prev => !prev)
+    }, [])
 
     return (
         <TelemetryProvider>
@@ -103,7 +93,7 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                             logoAlt="F1 Telemetry"
                             appName="F1 Tele"
                             projects={[]}
-                            collapseButtonRef={sidebarCollapseButtonRef}
+                            collapseButtonRef={sidebarCollapseButtonRef as React.RefObject<HTMLButtonElement>}
                         />
 
                         {/* Expand Button - Shows when sidebar is collapsed on desktop */}
@@ -148,7 +138,7 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                                             opacity: { duration: 0.2 }
                                         }
                                     }}
-                                    className="flex gap-4 shrink-0 overflow-hidden"
+                                    className="flex gap-4 shrink-0 overflow-visible"
                                 >
                                     <div className="flex gap-4 w-full h-[72px]">
                                         <TopBarLeft className="flex-1" />
