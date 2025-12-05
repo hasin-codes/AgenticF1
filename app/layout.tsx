@@ -6,11 +6,17 @@ import { ChatProvider } from "@/lib/chat-context";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true,
 });
 
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
+  display: "swap",
+  preload: false, // Only load when needed
+  adjustFontFallback: true,
 });
 
 export const metadata: Metadata = {

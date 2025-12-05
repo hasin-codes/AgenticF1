@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  // Forced restart for API route pickup
+  // Basic performance optimizations
+  compress: true,
+  poweredByHeader: false,
 };
 
 export default nextConfig;
