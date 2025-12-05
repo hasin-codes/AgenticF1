@@ -32,11 +32,18 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
     const [messageIdCounter, setMessageIdCounter] = React.useState(1)
 
     const endOfMessagesRef = React.useRef<HTMLDivElement>(null)
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null)
     const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true)
 
     // Track the current chatId being displayed
     const activeChatIdRef = React.useRef<string | undefined>(chatId)
     const isInitializedRef = React.useRef(false)
+
+    // Scroll position preservation for telemetry panel toggle
+    const savedScrollTopRef = React.useRef<number>(0)
+    const previousTelemetryVisibleRef = React.useRef(isTelemetryVisible)
+    const anchorElementRef = React.useRef<HTMLElement | null>(null)
+    const anchorOffsetRef = React.useRef<number>(0)
 
     // Initialize or load chat data when chatId changes - NO CONTEXT FUNCTIONS IN DEPS
     React.useEffect(() => {
@@ -74,8 +81,8 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
 
     // Sync messages to context - separate effect with proper guards
     React.useEffect(() => {
-        // Don't sync if not initialized or no active chat or no messages
-        if (!isInitializedRef.current || !activeChatIdRef.current || messages.length === 0) {
+        // Don't sync if not initialized or no active chat
+        if (!isInitializedRef.current || !activeChatIdRef.current) {
             return
         }
 
@@ -91,7 +98,7 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
             updateChatMessages(activeChatIdRef.current, messages)
 
             // Update title based on first user message if still "New Chat"
-            if (currentChatData.title === 'New Chat') {
+            if (currentChatData.title === 'New Chat' && messages.length > 0) {
                 const firstUserMessage = messages.find(m => m.role === 'user')
                 if (firstUserMessage) {
                     const title = firstUserMessage.content.slice(0, 50) +
@@ -101,6 +108,64 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
             }
         }
     }, [messages]) // ONLY messages in dependencies
+
+    // Preserve scroll position when telemetry panel toggles using smooth scroll-to-element
+    React.useEffect(() => {
+        // Check if telemetry visibility is changing
+        if (previousTelemetryVisibleRef.current !== isTelemetryVisible) {
+            const scrollContainer = scrollContainerRef.current
+            const anchorElement = anchorElementRef.current
+
+            if (scrollContainer && anchorElement) {
+                // Wait for the resize animation to complete, then smooth scroll to anchor
+                const timeoutId = setTimeout(() => {
+                    if (anchorElement) {
+                        // Smooth scroll the message into view at the same relative position
+                        anchorElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center' // Center the message in viewport
+                        })
+
+                        // Clear the anchor after scrolling
+                        anchorElementRef.current = null
+                    }
+                }, 550) // Wait for 500ms resize animation + buffer
+
+                previousTelemetryVisibleRef.current = isTelemetryVisible
+
+                return () => {
+                    clearTimeout(timeoutId)
+                }
+            }
+
+            previousTelemetryVisibleRef.current = isTelemetryVisible
+        }
+    }, [isTelemetryVisible])
+
+    // Handler to capture anchor element when toggle button is clicked
+    const handleToggleTelemetry = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        const scrollContainer = scrollContainerRef.current
+        if (!scrollContainer) {
+            onToggleTelemetry?.()
+            return
+        }
+
+        // Find the parent message element from the button
+        const button = event.currentTarget
+        const messageElement = button.closest('[data-message-id]') as HTMLElement
+
+        if (messageElement) {
+            const containerRect = scrollContainer.getBoundingClientRect()
+            const messageRect = messageElement.getBoundingClientRect()
+
+            // Save the anchor element and its offset from container top
+            anchorElementRef.current = messageElement
+            anchorOffsetRef.current = messageRect.top - containerRect.top
+        }
+
+        // Call the original toggle
+        onToggleTelemetry?.()
+    }, [onToggleTelemetry])
 
     // Auto-scroll logic
     const handleScroll = React.useCallback((event: React.UIEvent<HTMLDivElement>) => {
@@ -145,16 +210,16 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
         if (isLoading || !userMessage.trim()) return
 
         let currentChatId = activeChatIdRef.current
+        let isNewChat = false
 
-        // Create new chat if we don't have one
+        // Create new chat if we don't have one (but DON'T navigate yet)
         if (!currentChatId) {
             currentChatId = generateUUID()
             createNewChat(currentChatId)
             activeChatIdRef.current = currentChatId
             isInitializedRef.current = true
-
-            // Update URL without reloading
-            router.push(`/c/${currentChatId}`)
+            isNewChat = true
+            // DON'T navigate yet - wait until after streaming completes
         }
 
         const newUserMsgId = messageIdCounter
@@ -227,6 +292,14 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
                 )
             )
 
+            // NOW navigate to the new chat URL after streaming completes
+            // Give a small delay to ensure state is saved to context
+            if (isNewChat) {
+                setTimeout(() => {
+                    router.push(`/c/${currentChatId}`)
+                }, 100)
+            }
+
         } catch (error) {
             console.error('Error sending message:', error)
 
@@ -240,6 +313,13 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
 
             setMessages(prev => [...prev, errorMsg])
             setMessageIdCounter(prev => prev + 1)
+
+            // If it was a new chat and errored, still navigate
+            if (isNewChat) {
+                setTimeout(() => {
+                    router.push(`/c/${currentChatId}`)
+                }, 100)
+            }
         } finally {
             setIsLoading(false)
         }
@@ -258,6 +338,7 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
             {/* Messages Area */}
             <div className="flex-1 overflow-hidden relative">
                 <div
+                    ref={scrollContainerRef}
                     className="h-full w-full overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
                     onScroll={handleScroll}
                     style={{
@@ -268,6 +349,7 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
                         {messages.map((msg, index) => (
                             <motion.div
                                 key={msg.id}
+                                data-message-id={msg.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.4, delay: index * 0.05 }}
@@ -330,7 +412,7 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={onToggleTelemetry}
+                                                    onClick={handleToggleTelemetry}
                                                     className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5"
                                                 >
                                                     {isTelemetryVisible ? (
@@ -389,6 +471,6 @@ export function ChatInterface({ className, chatId, isTelemetryVisible, onToggleT
                     <AI_Prompt onSendMessage={handleSendMessage} disabled={isLoading} />
                 </div>
             </div>
-        </motion.div>
+        </motion.div >
     )
 }
