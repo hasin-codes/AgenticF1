@@ -73,7 +73,7 @@ export default function BasicDropdown({
         {isOpen && (
           <motion.div
             animate={{ opacity: 1, y: 0, scaleY: 1 }}
-            className="absolute left-0 z-10 mt-1 w-full origin-top rounded-lg border bg-popover shadow-lg"
+            className="absolute left-0 z-50 mt-1 w-full origin-top rounded-lg border bg-popover shadow-lg"
             exit={{
               opacity: 0,
               y: -10,

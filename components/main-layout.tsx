@@ -24,6 +24,9 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
     const [isDragging, setIsDragging] = React.useState(false)
     const containerRef = React.useRef<HTMLDivElement>(null)
 
+    // Ref to the sidebar collapse button
+    const sidebarCollapseButtonRef = React.useRef<HTMLButtonElement>(null)
+
     // No initialization needed here - ChatInterface handles it all
 
     // Handle mouse move for resizing
@@ -70,8 +73,18 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
     }, [isDragging, handleMouseMove, handleMouseUp])
 
     const toggleTelemetry = React.useCallback(() => {
-        setIsTelemetryVisible(prev => !prev)
-    }, [])
+        setIsTelemetryVisible(prev => {
+            const newValue = !prev
+            // If showing telemetry and sidebar is expanded, trigger the collapse button click
+            if (newValue && !isSidebarCollapsed && sidebarCollapseButtonRef.current) {
+                // Use a small delay to ensure smooth transition
+                setTimeout(() => {
+                    sidebarCollapseButtonRef.current?.click()
+                }, 0)
+            }
+            return newValue
+        })
+    }, [isSidebarCollapsed])
 
     return (
         <TelemetryProvider>
@@ -90,6 +103,7 @@ export function MainLayout({ initialChatId }: MainLayoutProps) {
                             logoAlt="F1 Telemetry"
                             appName="F1 Tele"
                             projects={[]}
+                            collapseButtonRef={sidebarCollapseButtonRef}
                         />
 
                         {/* Expand Button - Shows when sidebar is collapsed on desktop */}

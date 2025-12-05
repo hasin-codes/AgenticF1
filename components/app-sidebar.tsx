@@ -47,7 +47,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { FolderOpen, MessageSquare, Plus, HelpCircle, Settings, X, PanelLeftIcon } from 'lucide-react'
+import { MessageSquare, Plus, HelpCircle, Settings, X, PanelLeftIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ProfileDropdown from '@/components/profile-dropdown'
 import {
@@ -65,7 +65,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useChat } from '@/lib/chat-context'
-import { generateUUID } from '@/lib/uuid'
+
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -102,6 +102,8 @@ interface AppSidebarProps {
     logoUrl?: string
     logoAlt?: string
     appName?: string
+    // Optional: Ref for the collapse button (for programmatic triggering)
+    collapseButtonRef?: React.RefObject<HTMLButtonElement>
 }
 
 // ============================================================================
@@ -125,17 +127,18 @@ export function AppSidebar({
     onSettingsClick,
     logoUrl = "/ZplitGPT.svg",
     logoAlt = "App Logo",
-    appName = "ZplitGPT"
+    appName = "ZplitGPT",
+    collapseButtonRef
 }: AppSidebarProps) {
 
     const router = useRouter()
-    const { getAllChats, createNewChat, currentChatId } = useChat()
+    const { getAllChats, currentChatId } = useChat()
     const isMobile = useIsMobile()
     const [isHovered, setIsHovered] = useState(false)
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false)
 
     const isExpanded = isMobile ? !collapsed : !collapsed
-    const [projectsExpanded, setProjectsExpanded] = useState(true) // Default to true for better UX
+
 
     useEffect(() => {
         if (isMobile && !collapsed) {
@@ -148,7 +151,7 @@ export function AppSidebar({
         }
     }, [isMobile, collapsed])
 
-    const projects: Project[] = propsProjects || []
+
 
     // Get chat history from chat context
     const chatHistory: ChatHistory[] = getAllChats().map(chat => ({
@@ -161,10 +164,7 @@ export function AppSidebar({
         })
     }))
 
-    const selectedProject = propsSelectedProject ?? 'default'
     const selectedChat = currentChatId || propsSelectedChat || 'chat-1'
-
-    const setSelectedProject = propsOnProjectSelect || (() => { })
 
     const handleChatSelect = (chatId: string) => {
         router.push(`/c/${chatId}`)
@@ -172,9 +172,8 @@ export function AppSidebar({
     }
 
     const handleNewChat = () => {
-        const newChatId = generateUUID()
-        createNewChat(newChatId)
-        router.push(`/c/${newChatId}`)
+        // Navigate to home screen - chat will be created when user sends first message
+        router.push('/')
         if (isMobile) onToggle()
     }
 
@@ -231,6 +230,7 @@ export function AppSidebar({
                     {/* Expanded State Toggle */}
                     {!isMobile && isExpanded && (
                         <Button
+                            ref={collapseButtonRef}
                             variant="ghost"
                             size="icon"
                             onClick={onToggle}
@@ -257,87 +257,29 @@ export function AppSidebar({
             {/* MAIN CONTENT */}
             <SidebarContent className="flex-1 overflow-y-auto overflow-x-hidden relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
 
-                {/* PROJECTS */}
-                <SidebarGroup>
-                    {isExpanded && (
-                        <div className="flex items-center justify-between mb-2 px-2 group/label">
-                            <SidebarGroupLabel className="text-zinc-500 flex items-center font-medium text-[10px] uppercase tracking-wider transition-colors group-hover/label:text-zinc-300">
-                                Projects
-                            </SidebarGroupLabel>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 p-1 h-5 w-5 shrink-0 opacity-0 group-hover/label:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    onProjectCreate?.('New Project')
-                                }}
-                            >
-                                <Plus className="w-3 h-3" />
-                            </Button>
-                        </div>
-                    )}
-                    <SidebarGroupContent className={cn(
-                        "overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out",
-                        projectsExpanded ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
-                    )}>
-                        <SidebarMenu>
-                            {projects.map((project) => (
-                                <SidebarMenuItem key={project.id}>
-                                    <SidebarMenuButton
-                                        onClick={() => {
-                                            setSelectedProject(project.id)
-                                            if (isMobile) onToggle()
-                                        }}
-                                        isActive={selectedProject === project.id}
-                                        tooltip={!isExpanded ? project.name : undefined}
-                                        className={cn(
-                                            "rounded-lg cursor-pointer transition-all duration-200 ease-out relative group border border-transparent",
-                                            isExpanded ? "px-3 py-2" : "p-0 justify-center h-10 w-10 mx-auto",
-                                            selectedProject === project.id
-                                                ? 'bg-gradient-to-r from-red-500/10 to-transparent border-l-red-500 border-l-2 text-red-100'
-                                                : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/5'
-                                        )}
-                                    >
-                                        <div className={cn("flex items-center w-full", isExpanded ? "gap-3" : "justify-center")}>
-                                            <FolderOpen className={cn(
-                                                "shrink-0 transition-colors",
-                                                isExpanded ? "w-4 h-4" : "w-5 h-5",
-                                                selectedProject === project.id ? "text-red-400" : "text-zinc-500 group-hover:text-zinc-300"
-                                            )} />
-                                            {isExpanded && (
-                                                <span className="text-sm font-medium truncate">
-                                                    {project.name}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                {/* NEW CHAT BUTTON */}
+                <div className={cn("px-3 pt-4 pb-2", !isExpanded && "px-2")}>
+                    <Button
+                        onClick={handleNewChat}
+                        className={cn(
+                            "w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200",
+                            isExpanded ? "h-10 justify-start gap-3 px-4" : "h-10 w-10 p-0 justify-center mx-auto"
+                        )}
+                    >
+                        <Plus className={cn("shrink-0", isExpanded ? "h-4 w-4" : "h-5 w-5")} />
+                        {isExpanded && <span>New Chat</span>}
+                    </Button>
+                </div>
 
                 <SidebarSeparator className="bg-white/5 my-2" />
 
                 {/* CHATS */}
                 <SidebarGroup>
                     {isExpanded && (
-                        <div className="flex items-center justify-between mb-2 px-2 group/label">
-                            <SidebarGroupLabel className="text-zinc-500 flex items-center font-medium text-[10px] uppercase tracking-wider transition-colors group-hover/label:text-zinc-300">
+                        <div className="flex items-center mb-2 px-2">
+                            <SidebarGroupLabel className="text-zinc-500 flex items-center font-medium text-[10px] uppercase tracking-wider">
                                 Recent Chats
                             </SidebarGroupLabel>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-zinc-500 hover:text-red-400 hover:bg-red-500/10 p-1 h-5 w-5 shrink-0 opacity-0 group-hover/label:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleNewChat()
-                                }}
-                            >
-                                <Plus className="w-3 h-3" />
-                            </Button>
                         </div>
                     )}
                     <SidebarGroupContent>
